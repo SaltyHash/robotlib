@@ -132,20 +132,16 @@ def differential_odometry_from_distance(d_l, d_r, heading, track_width):
     # TODO: Use numpy if arrays are passed in so a massive number of these
     #     calculations can be performed in parallel
 
-    if d_l == d_r:
-        d_x = math.cos(heading) * d_l
-        d_y = math.sin(heading) * d_l
-        d_heading = 0.0
-    else:
+    try:
         d_heading = (d_r - d_l) / track_width
         R = (track_width / 2) * (d_r + d_l) / (d_r - d_l)
 
-        a = math.cos(d_heading) - 1
-        b = math.sin(d_heading)
-        c = R * math.sin(heading)
-        d = -R * math.cos(heading)
-
-        d_x = a * c - b * d
-        d_y = b * c + a * d
+        new_heading = heading + d_heading
+        d_x = R * (math.sin(new_heading) - math.sin(heading))
+        d_y = R * (-math.cos(new_heading) + math.cos(heading))
+    except ZeroDivisionError:
+        d_x = math.cos(heading) * d_l
+        d_y = math.sin(heading) * d_l
+        d_heading = 0.0
 
     return d_x, d_y, d_heading
