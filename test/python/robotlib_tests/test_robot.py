@@ -1,5 +1,7 @@
+import unittest
 from typing import Dict
 from unittest import TestCase
+
 from robotlib.robot import Robot, InputSample, Input, Device, Output
 
 
@@ -49,9 +51,11 @@ class BasicRobot(Robot):
         ultrasonic_sensor.add_input(UltrasonicInput('distance'))
         self.add_device(ultrasonic_sensor)
 
-        self.drive_motors: DriveMotors = self.add_device(DriveMotors('drive_motors'))
+        self.drive_motors: DriveMotors = self.add_device(
+            DriveMotors('drive_motors'))
 
-    def process_observation(self, observation: Dict[str, InputSample], start_time_s: float, stop_time_s: float):
+    def process_observation(self, observation: Dict[str, InputSample],
+                            start_time_s: float, stop_time_s: float):
         print(observation)
         print(start_time_s)
         print(stop_time_s)
@@ -66,3 +70,7 @@ class TestBasicRobot(TestCase):
 
     def test_run(self):
         self.robot.run()
+
+
+if __name__ == '__main__':
+    unittest.main()
