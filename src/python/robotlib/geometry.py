@@ -6,6 +6,7 @@ All functions assume degrees are in Radians unless specified otherwise.
 
 import math
 from math import pi
+from typing import Tuple
 
 
 class Point2D:
@@ -18,11 +19,22 @@ class Point2D:
         self.x = x
         self.y = y
 
+    def __abs__(self) -> float:
+        return math.sqrt(sum(
+            value ** 2 for value in self._get_dimensions()
+        ))
+
+    def _get_dimensions(self) -> Tuple:
+        return self.x, self.y
+
     def __add__(self, other: 'Point2D') -> 'Point2D':
         return Point2D(
             x=self.x + other.x,
             y=self.y + other.y
         )
+
+    def __eq__(self, other: 'Point2D') -> bool:
+        return self.x == other.x and self.y == other.y
 
     def __str__(self) -> str:
         return f'<x={self.x}, y={self.y}>'
@@ -37,12 +49,18 @@ class Point3D(Point2D):
         super().__init__(x=x, y=y)
         self.z = z
 
+    def _get_dimensions(self) -> Tuple:
+        return self.x, self.y, self.z
+
     def __add__(self, other: 'Point3D') -> 'Point3D':
         return Point3D(
             x=self.x + other.x,
             y=self.y + other.y,
             z=self.z + other.z
         )
+
+    def __eq__(self, other: 'Point3D') -> bool:
+        return super().__eq__(other) and self.z == other.z
 
     def __str__(self) -> str:
         return f'<x={self.x}, y={self.y}, z={self.z}>'
