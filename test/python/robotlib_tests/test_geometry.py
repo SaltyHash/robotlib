@@ -35,7 +35,7 @@ class AngleFunctionsTest(unittest.TestCase):
         [Point2D(0, 0), Point2D(0, 0), pi / 2, -pi / 2],
         [Point2D(0, 0), Point2D(1, 1), 0.0, pi / 4],
         [Point2D(0, 0), Point2D(1, 1), pi / 4, 0.0],
-        [Point2D(0, 0), Point2D(1, 1), -3 * pi / 4, -pi],
+        [Point2D(0, 0), Point2D(1, 1), -3 * pi / 4, pi],
     ])
     def test_angle_between_heading(
             self,
@@ -53,13 +53,13 @@ class AngleFunctionsTest(unittest.TestCase):
         # [angle, expected_angle]
         [0.0, 0.0],
         [pi / 2, pi / 2],
-        [pi, -pi],
-        [-pi, -pi],
+        [pi, pi],
+        [-pi, pi],
         [3 * pi / 2, -pi / 2],
         [-3 * pi / 2, pi / 2],
         [2 * pi, 0.0],
         [-2 * pi, 0.0],
-        [5 * pi, -pi],
+        [5 * pi, pi],
         [1.1 * pi, -0.9 * pi]
     ])
     def test_trunc_angle(self, angle: float, expected_angle: float) -> None:

@@ -67,6 +67,11 @@ class Point3D(Point2D):
 
 
 def angle_between(start_point: 'Point2D', end_point: 'Point2D') -> float:
+    """
+    Returns the angle in Radians from the start point to the end point,
+    in the range (-pi, pi].
+    """
+
     dx = end_point.x - start_point.x
     dy = end_point.y - start_point.y
     return math.atan2(dy, dx)
@@ -77,6 +82,19 @@ def angle_between_heading(
         end_point: 'Point2D',
         heading: float
 ) -> float:
+    """
+    Returns the angle between the heading at the start point to the end point.
+
+    This is useful if you have a robot with a particular heading located at the
+    start point, and you want to determine the angle of the robot's heading to
+    some end point for navigation purposes.
+
+    :param start_point:
+    :param end_point:
+    :param heading: Relative to start_point. In Radians.
+    :return: Angle (Radians) in range [-pi, pi).
+    """
+
     angle = angle_between(start_point, end_point)
     angle = angle - heading
     angle = trunc_angle(angle)
@@ -95,7 +113,14 @@ def trunc_angle(angle: float) -> float:
         1.1 * pi --> -0.9 * pi
     """
 
-    angle += pi
+    # Shift and flip the angle
+    angle = -(angle + pi)
+
+    # Truncate the angle to range [-2 * pi, 0)
     angle %= 2 * pi
-    angle -= pi
+    angle -= 2 * pi
+
+    # Shift and flip the angle again
+    angle = -(angle + pi)
+
     return angle
