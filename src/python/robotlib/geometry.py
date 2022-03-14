@@ -92,7 +92,7 @@ def angle_between_heading(
     :param start_point:
     :param end_point:
     :param heading: Relative to start_point. In Radians.
-    :return: Angle (Radians) in range [-pi, pi).
+    :return: Angle (Radians) in range (-pi, pi].
     """
 
     angle = angle_between(start_point, end_point)
@@ -103,24 +103,31 @@ def angle_between_heading(
 
 def trunc_angle(angle: float) -> float:
     """
-    Truncates the angle such that it is kept in range ``[-pi, pi)``.
+    Truncates the angle such that it is kept in range ``(-pi, pi]``.
 
     Examples::
 
-        pi / 2 --> pi / 2
-        3 * pi / 2 --> -pi / 2
-        5 * pi --> -pi
-        1.1 * pi --> -0.9 * pi
+        0      --> 0
+        pi     --> pi
+        -pi    --> pi
+        pi/2   --> pi/2
+        3 pi/2 --> -pi/2
+        5 pi   --> pi
+        1.1 pi --> -0.9 pi
     """
 
-    # Shift and flip the angle
-    angle = -(angle + pi)
+    # Shift the angle up
+    angle += pi
 
-    # Truncate the angle to range [-2 * pi, 0)
-    angle %= 2 * pi
-    angle -= 2 * pi
+    # Truncate the angle to range (0, 2 * pi]
+    #     mod( x, y) --> [ 0, y)
+    #     mod(-x, y) --> ( y, 0]
+    #   - mod(-x, y) --> (-y, 0]
+    # y - mod(-x, y) --> (0, y]
+    two_pi = 2 * pi
+    angle = two_pi - (-angle % two_pi)
 
-    # Shift and flip the angle again
-    angle = -(angle + pi)
+    # Shift the angle back down
+    angle -= pi
 
     return angle
