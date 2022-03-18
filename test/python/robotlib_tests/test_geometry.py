@@ -91,6 +91,15 @@ class Point2DTest(unittest.TestCase):
         self.assertEqual(5, point_c.x)
         self.assertEqual(-3, point_c.y)
 
+    def test_sub(self) -> None:
+        point_a = Point2D(x=10, y=5)
+        point_b = Point2D(x=4, y=7)
+
+        point_c = point_a - point_b
+
+        self.assertEqual(6, point_c.x)
+        self.assertEqual(-2, point_c.y)
+
     @parameterized.expand([
         # [point_a, point_b]
         [Point2D(0, 0), Point2D(0, 0)],
