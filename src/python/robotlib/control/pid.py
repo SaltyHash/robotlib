@@ -1,3 +1,6 @@
+from robotlib.mathutils import Clipper
+
+
 class PID:
     def __init__(
             self,
@@ -10,14 +13,14 @@ class PID:
         self.i = i
         self.d = d
         self.output_gain = output_gain
-        self.min_output = min_output
-        self.max_output = max_output
 
         self.target = None
         self.input = None
 
         self._error_sum = 0.0
         self._prev_error = 0.0
+
+        self._output_clipper = Clipper(min_output, max_output)
 
     def set_target(self, value: float) -> None:
         self.target = value
@@ -33,8 +36,7 @@ class PID:
         d = self._get_d_error(error, dt)
 
         output = self.output_gain * (p + i + d)
-        output = self._enforce_min(output)
-        output = self._enforce_max(output)
+        output = self._output_clipper(output)
 
         return output
 
@@ -64,11 +66,3 @@ class PID:
         self._prev_error = error
 
         return d_error
-
-    def _enforce_min(self, output: float) -> float:
-        return output if self.min_output is None else \
-            max(output, self.min_output)
-
-    def _enforce_max(self, output: float) -> float:
-        return output if self.max_output is None else \
-            min(output, self.max_output)
