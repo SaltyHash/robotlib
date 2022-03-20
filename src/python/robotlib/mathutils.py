@@ -8,10 +8,7 @@ class Clipper:
             max_value: Optional[float],
     ):
         self._min_value = None
-        self._min_clipper = None
-
         self._max_value = None
-        self._max_clipper = None
 
         self.set_limits(min_value, max_value)
 
@@ -33,7 +30,6 @@ class Clipper:
     def set_min(self, value: Optional[float]) -> None:
         self._check_min(value)
         self._min_value = value
-        self._set_min_clipper()
 
     def _check_min(self, value: Optional[float]) -> None:
         if value is None:
@@ -43,19 +39,12 @@ class Clipper:
             raise ValueError(f'Min value ({value}) cannot be greater '
                              f'than max value ({self._max_value}).')
 
-    def _set_min_clipper(self):
-        if self._min_value is not None:
-            self._min_clipper = lambda v: max(v, self._min_value)
-        else:
-            self._min_clipper = lambda v: v
-
     def get_max(self) -> Optional[float]:
         return self._max_value
 
     def set_max(self, value: Optional[float]) -> None:
         self._check_max(value)
         self._max_value = value
-        self._set_max_clipper()
 
     def _check_max(self, value: Optional[float]) -> None:
         if value is None:
@@ -65,18 +54,18 @@ class Clipper:
             raise ValueError(f'Max value ({value}) cannot be greater '
                              f'than min value ({self._min_value}).')
 
-    def _set_max_clipper(self) -> None:
-        if self._max_value is not None:
-            self._max_clipper = lambda v: min(v, self._max_value)
-        else:
-            self._max_clipper = lambda v: v
-
     def __call__(self, value: float) -> float:
         return self.clip(value)
 
     def clip(self, value: float) -> float:
-        value = self._min_clipper(value)
-        value = self._max_clipper(value)
+        min_value = self.get_min()
+        if min_value is not None and value <= min_value:
+            return min_value
+
+        max_value = self.get_max()
+        if max_value is not None and value >= max_value:
+            return max_value
+
         return value
 
 
