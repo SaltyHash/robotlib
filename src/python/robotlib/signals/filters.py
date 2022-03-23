@@ -1,7 +1,15 @@
 from math import pi
 
 
-class _SimpleFilter:
+class Filter:
+    def __call__(self, value: float, dt: float) -> float:
+        return self.filter(value, dt)
+
+    def filter(self, value: float, dt: float) -> float:
+        raise NotImplementedError()
+
+
+class _SingleCutoffFreqFilter(Filter):
     def __init__(self, cutoff_freq: float, init_value: float = 0.0):
         self._cutoff_freq = None
         self.set_cutoff_freq(cutoff_freq)
@@ -28,7 +36,7 @@ class _SimpleFilter:
         raise NotImplementedError()
 
 
-class LowPassFilter(_SimpleFilter):
+class LowPassFilter(_SingleCutoffFreqFilter):
     """
     Passes signals lower than the cutoff frequency. Decreases signals higher
     than the cutoff frequency. The higher a signal's frequency is above the
@@ -53,7 +61,7 @@ class LowPassFilter(_SimpleFilter):
         return a / (a + 1)
 
 
-class HighPassFilter(_SimpleFilter):
+class HighPassFilter(_SingleCutoffFreqFilter):
     """
     Passes signals higher than the cutoff frequency. Decreases signals lower
     than the cutoff frequency. The lower a signal's frequency is below the
@@ -80,3 +88,101 @@ class HighPassFilter(_SimpleFilter):
     def _get_alpha(self, dt: float) -> float:
         cutoff_freq = self.get_cutoff_freq()
         return 1 / (2 * pi * dt * cutoff_freq + 1)
+
+
+
+class _LowHighCutoffFreqsFilter(Filter):
+    def __init__(
+            self,
+            low_cutoff_freq: float,
+            high_cutoff_freq: float
+    ):
+        self._check_cutoff_freqs(low_cutoff_freq, high_cutoff_freq)
+
+    def _check_cutoff_freqs(
+            self,
+            low_cutoff_freq: float,
+            high_cutoff_freq: float
+    ) -> None:
+        if low_cutoff_freq > high_cutoff_freq:
+            raise ValueError(
+                f'low_cutoff_freq ({low_cutoff_freq}) cannot be higher than '
+                f'high_cutoff_freq ({high_cutoff_freq}).'
+            )
+
+    def set_cutoff_freqs(
+            self,
+            low_cutoff_freq: float,
+            high_cutoff_freq: float
+    ) -> None:
+        self._check_cutoff_freqs(low_cutoff_freq, high_cutoff_freq)
+
+
+class BandPassFilter(_LowHighCutoffFreqsFilter):
+    """
+    Passes signals between the cutoff frequencies. Decreases signals outside
+    the cutoff frequencies. The further a signal's frequency is outside the
+    cutoff frequency band, the more the signal is decreased.
+
+    https://en.wikipedia.org/wiki/Band-pass_filter
+    """
+
+    def __init__(
+            self,
+            low_cutoff_freq: float,
+            high_cutoff_freq: float,
+            init_value: float = 0.0
+    ):
+        super().__init__(low_cutoff_freq, high_cutoff_freq)
+
+        self._hpf = HighPassFilter(low_cutoff_freq, init_value=init_value)
+        self._lpf = LowPassFilter(high_cutoff_freq, init_value=init_value)
+
+    def set_cutoff_freqs(
+            self,
+            low_cutoff_freq: float,
+            high_cutoff_freq: float
+    ) -> None:
+        super().set_cutoff_freqs(low_cutoff_freq, high_cutoff_freq)
+
+        self._hpf.set_cutoff_freq(low_cutoff_freq)
+        self._lpf.set_cutoff_freq(high_cutoff_freq)
+
+    def filter(self, value: float, dt: float) -> float:
+        value = self._hpf(value, dt)
+        value = self._lpf(value, dt)
+        return value
+
+
+class BandStopFilter(_LowHighCutoffFreqsFilter):
+    """
+    Passes signals outside the cutoff frequencies. Decreases signals inside
+    the cutoff frequencies. The further a signal's frequency is inside the
+    cutoff frequency band, the more the signal is decreased.
+
+    https://en.wikipedia.org/wiki/Band-stop_filter
+    """
+
+    def __init__(
+            self,
+            low_cutoff_freq: float,
+            high_cutoff_freq: float,
+            init_value: float = 0.0
+    ):
+        super().__init__(low_cutoff_freq, high_cutoff_freq)
+
+        self._lpf = LowPassFilter(low_cutoff_freq, init_value=init_value)
+        self._hpf = HighPassFilter(high_cutoff_freq, init_value=init_value)
+
+    def set_cutoff_freqs(
+            self,
+            low_cutoff_freq: float,
+            high_cutoff_freq: float
+    ) -> None:
+        super().set_cutoff_freqs(low_cutoff_freq, high_cutoff_freq)
+
+        self._lpf.set_cutoff_freq(low_cutoff_freq)
+        self._hpf.set_cutoff_freq(high_cutoff_freq)
+
+    def filter(self, value: float, dt: float) -> float:
+        return self._lpf(value, dt) + self._hpf(value, dt)
