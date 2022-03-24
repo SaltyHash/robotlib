@@ -3,7 +3,7 @@ from typing import Iterator
 from unittest import TestCase
 
 from robotlib.signals.generators import SignalGenerator, SineWaveGenerator, \
-    PeriodicSignalGenerator
+    PeriodicSignalGenerator, SquareWaveGenerator
 
 
 class SignalGeneratorImpl(SignalGenerator):
@@ -134,6 +134,84 @@ class TestSineWaveGenerator(TestCase):
 
         result = gen.sample(dt)
         self.assertAlmostEqual(0.0, result)
+
+
+class TestSquareWaveGenerator(TestCase):
+    def test_sample(self):
+        gen = SquareWaveGenerator(freq=10, duty_cycle=0.5)
+        dt = 0.025  # 1/4th of a period
+
+        # 0% of period
+        result = gen.sample(0.0)
+        self.assertAlmostEqual(1.0, result)
+
+        # 25% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(1.0, result)
+
+        # (50 - e)% of period, i.e. right before the end of the duty cycle
+        result = gen.sample(dt - 0.001)
+        self.assertAlmostEqual(1.0, result)
+
+        # 50% of period, i.e. the end of the duty cycle
+        result = gen.sample(0.001)
+        self.assertAlmostEqual(0.0, result)
+
+        # 75% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.0, result)
+
+        # 100% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(1.0, result)
+
+    def test_sample__duty_cycle_0__always_0(self):
+        gen = SquareWaveGenerator(freq=1, duty_cycle=0.0)
+        dt = 0.33  # 33% of period
+
+        # 0% of period
+        result = gen.sample(0.0)
+        self.assertAlmostEqual(0.0, result)
+
+        # 33% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.0, result)
+
+        # 66% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.0, result)
+
+        # 99% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.0, result)
+
+        # 132% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.0, result)
+
+    def test_sample__duty_cycle_1__always_1(self):
+        gen = SquareWaveGenerator(freq=1, duty_cycle=1.0)
+        dt = 0.33  # 33% of period
+
+        # 0% of period
+        result = gen.sample(0.0)
+        self.assertAlmostEqual(1.0, result)
+
+        # 33% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(1.0, result)
+
+        # 66% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(1.0, result)
+
+        # 99% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(1.0, result)
+
+        # 132% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(1.0, result)
 
 
 if __name__ == '__main__':
