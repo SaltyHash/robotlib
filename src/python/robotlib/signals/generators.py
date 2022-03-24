@@ -129,3 +129,8 @@ class SquareWaveGenerator(PeriodicSignalGenerator):
         t_in_period = self._t % period
         fraction = t_in_period / period
         return fraction
+
+
+class TriangleWaveGenerator(PeriodicSignalGenerator):
+    def _get_sample(self) -> float:
+        raise NotImplementedError()
