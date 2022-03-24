@@ -1,4 +1,5 @@
 import math
+import random
 from abc import ABC
 from math import pi
 from typing import Iterator
@@ -134,3 +135,70 @@ class SquareWaveGenerator(PeriodicSignalGenerator):
 class TriangleWaveGenerator(PeriodicSignalGenerator):
     def _get_sample(self) -> float:
         raise NotImplementedError()
+
+
+class RandomSignalGenerator(SignalGenerator, ABC):
+    def __init__(
+            self,
+            seed: int = None,
+            randomness: str = 'pseudo'
+    ):
+        """
+        :param seed: Optional seed for the RNG. Only applicable if randomness
+            is set to 'pseudo'.
+        :param randomness: Either 'pseudo' (the default) or 'true'.
+        """
+
+        self._set_rng(randomness)
+
+        if seed is not None:
+            self._rng.seed(seed)
+
+    def _set_rng(self, randomness: str) -> None:
+        if randomness == 'pseudo':
+            self._rng = random.Random()
+        elif randomness == 'true':
+            self._rng = random.SystemRandom()
+        else:
+            raise ValueError(
+                f'randomness must be either "pseudo" or "true"; '
+                f'got {randomness!r}.'
+            )
+
+
+class UniformRandomSignalGenerator(RandomSignalGenerator):
+    """Generates a random signal uniformly over the range [low, high)."""
+
+    def __init__(
+            self,
+            low: float = 0.0,
+            high: float = 1.0,
+            seed: int = None,
+            randomness: str = 'pseudo'
+    ):
+        super().__init__(seed, randomness)
+
+        self.low = low
+        self.high = high
+
+    def sample(self, dt: float) -> float:
+        return self._rng.uniform(self.low, self.high)
+
+
+class GaussianRandomSignalGenerator(RandomSignalGenerator):
+    """Generates a random signal sampled from a Gaussian distribution."""
+
+    def __init__(
+            self,
+            mean: float = 0.0,
+            std_dev: float = 1.0,
+            seed: int = None,
+            randomness: str = 'pseudo'
+    ):
+        super().__init__(seed, randomness)
+
+        self.mean = mean
+        self.std_dev = std_dev
+
+    def sample(self, dt: float) -> float:
+        return self._rng.gauss(self.mean, self.std_dev)

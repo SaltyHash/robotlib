@@ -1,9 +1,10 @@
 import unittest
 from typing import Iterator
-from unittest import TestCase
 
 from robotlib.signals.generators import SignalGenerator, SineWaveGenerator, \
-    PeriodicSignalGenerator, SquareWaveGenerator
+    PeriodicSignalGenerator, SquareWaveGenerator, UniformRandomSignalGenerator, \
+    GaussianRandomSignalGenerator
+from robotlib_tests.test import RobotlibTestCase as TestCase
 
 
 class SignalGeneratorImpl(SignalGenerator):
@@ -65,7 +66,7 @@ class TestSignalGenerator(TestCase):
 
 
 class PeriodicSignalGeneratorImpl(PeriodicSignalGenerator):
-    def sample(self, dt: float) -> float:
+    def _get_sample(self) -> float:
         return 0.0
 
 
@@ -212,6 +213,62 @@ class TestSquareWaveGenerator(TestCase):
         # 132% of period
         result = gen.sample(dt)
         self.assertAlmostEqual(1.0, result)
+
+
+class TestUniformRandomSignalGenerator(TestCase):
+    def test_samples_within_range(self):
+        low, high = -2, 4
+        gen = UniformRandomSignalGenerator(low=low, high=high)
+
+        results = list(gen.sample_iter(0.0, sample_count=10))
+
+        for sample in results:
+            self.assertGreaterEqual(sample, low)
+            self.assertLess(sample, high)
+
+    def test_samples__with_seed(self):
+        low, high = -2, 4
+        gen = UniformRandomSignalGenerator(low=low, high=high, seed=1)
+
+        results = list(gen.sample_iter(0.0, sample_count=10))
+
+        expected = [
+            -1.19381453,
+            3.08460242,
+            2.582647713,
+            -0.46958584,
+            0.97261052,
+            0.69694638,
+            1.90955783,
+            2.73234010,
+            -1.43684247,
+            -1.82991514
+        ]
+
+        self.assert_list_almost_equal(expected, results)
+
+
+class TestGaussianRandomSignalGenerator(TestCase):
+    def test_samples__with_seed(self):
+        gen = GaussianRandomSignalGenerator(mean=10, std_dev=1, seed=2)
+
+        results = list(gen.sample_iter(0.0, sample_count=10))
+        print(results)
+
+        expected = [
+            12.33816673,
+            9.33714609,
+            10.39485962,
+            10.14652144,
+            10.83514857,
+            8.59789021,
+            9.58522209,
+            9.24853984,
+            8.92536725,
+            9.15617118
+        ]
+
+        self.assert_list_almost_equal(expected, results)
 
 
 if __name__ == '__main__':
