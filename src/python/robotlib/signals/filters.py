@@ -150,7 +150,6 @@ class BandPassFilter(_LowHighCutoffFreqsFilter):
         0|__________/__._______.__\\________ freq
         low_cutoff_freq^       ^high_cutoff_freq
 
-
     https://en.wikipedia.org/wiki/Band-pass_filter
     """
 
@@ -195,8 +194,6 @@ class BandStopFilter(_LowHighCutoffFreqsFilter):
          |             . \\         / .
         0|_____________.__\\_______/__.___________ freq
         low_cutoff_freq^             ^high_cutoff_freq
-
-
 
     https://en.wikipedia.org/wiki/Band-stop_filter
     """
