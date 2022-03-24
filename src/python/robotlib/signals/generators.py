@@ -90,12 +90,18 @@ class SineWaveGenerator(PeriodicSignalGenerator):
 
 
 class SquareWaveGenerator(PeriodicSignalGenerator):
+    """Alternates between outputting a 1.0 and a 0.0."""
+
     def __init__(
             self,
             freq: float = None,
             period: float = None,
             duty_cycle: float = 0.5
     ):
+        """
+        :param duty_cycle: The fraction of the period during which the output
+            is 1.0. Should be in range [0.0, 1.0]. Defaults to 0.5 (50%).
+        """
         super().__init__(freq=freq, period=period)
 
         self._duty_cycle = None
