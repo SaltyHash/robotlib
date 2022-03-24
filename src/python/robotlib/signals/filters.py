@@ -42,6 +42,15 @@ class LowPassFilter(_SingleCutoffFreqFilter):
     than the cutoff frequency. The higher a signal's frequency is above the
     cutoff frequency, the more the signal is decreased.
 
+    Frequency response::
+
+        gain
+        1|-------\\
+         |       .\\
+         |       . \\
+        0|_______.__\\_______ freq
+                 ^cutoff_freq
+
     This is also known as a "moving average".
 
     This is useful for example if you have a sensor reading that is really
@@ -67,6 +76,15 @@ class HighPassFilter(_SingleCutoffFreqFilter):
     than the cutoff frequency. The lower a signal's frequency is below the
     cutoff frequency, the more the signal is decreased.
 
+    Frequency response::
+
+        gain
+        1|          /-------
+         |         /.
+         |        / .
+        0|_______/__._______ freq
+                    ^cutoff_freq
+
     This is useful for example if you have a sensor reading that has a slowly
     changing bias, for example a gyroscope. This can remove the bias from the
     rapidly varying true signal.
@@ -88,7 +106,6 @@ class HighPassFilter(_SingleCutoffFreqFilter):
     def _get_alpha(self, dt: float) -> float:
         cutoff_freq = self.get_cutoff_freq()
         return 1 / (2 * pi * dt * cutoff_freq + 1)
-
 
 
 class _LowHighCutoffFreqsFilter(Filter):
@@ -123,6 +140,16 @@ class BandPassFilter(_LowHighCutoffFreqsFilter):
     Passes signals between the cutoff frequencies. Decreases signals outside
     the cutoff frequencies. The further a signal's frequency is outside the
     cutoff frequency band, the more the signal is decreased.
+
+    Frequency response::
+
+        gain
+        1|             /-------\\
+         |            /.       .\\
+         |           / .       . \\
+        0|__________/__._______.__\\________ freq
+        low_cutoff_freq^       ^high_cutoff_freq
+
 
     https://en.wikipedia.org/wiki/Band-pass_filter
     """
@@ -159,6 +186,17 @@ class BandStopFilter(_LowHighCutoffFreqsFilter):
     Passes signals outside the cutoff frequencies. Decreases signals inside
     the cutoff frequencies. The further a signal's frequency is inside the
     cutoff frequency band, the more the signal is decreased.
+
+    Frequency response::
+
+        gain
+        1|-------------\\             /----------
+         |             .\\           /.
+         |             . \\         / .
+        0|_____________.__\\_______/__.___________ freq
+        low_cutoff_freq^             ^high_cutoff_freq
+
+
 
     https://en.wikipedia.org/wiki/Band-stop_filter
     """
