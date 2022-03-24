@@ -70,6 +70,20 @@ class PeriodicSignalGeneratorImpl(PeriodicSignalGenerator):
 
 
 class TestPeriodicSignalGenerator(TestCase):
+    def test_init__with_freq(self):
+        PeriodicSignalGeneratorImpl(freq=42)
+
+    def test_init__with_period(self):
+        PeriodicSignalGeneratorImpl(period=0.24)
+
+    def test_init__no_args__raises_ValueError(self):
+        with self.assertRaises(ValueError):
+            PeriodicSignalGeneratorImpl()
+
+    def test_init__with_freq_and_period__raises_ValueError(self):
+        with self.assertRaises(ValueError):
+            PeriodicSignalGeneratorImpl(freq=42, period=0.24)
+
     def test_get_freq(self):
         gen = PeriodicSignalGeneratorImpl(42)
 
@@ -81,14 +95,30 @@ class TestPeriodicSignalGenerator(TestCase):
         gen = PeriodicSignalGeneratorImpl(42)
 
         gen.set_freq(43)
+        result = gen.get_freq()
 
-        self.assertEqual(43, gen.get_freq())
+        self.assertEqual(43, result)
+
+    def test_get_period(self):
+        gen = PeriodicSignalGeneratorImpl(10)
+
+        result = gen.get_period()
+
+        self.assertAlmostEqual(0.1, result)
+
+    def test_set_period_and_get_period(self):
+        gen = PeriodicSignalGeneratorImpl(0)
+
+        gen.set_period(0.123)
+        result = gen.get_period()
+
+        self.assertAlmostEqual(0.123, result)
 
 
 class TestSineWaveGenerator(TestCase):
     def test_sample(self):
         gen = SineWaveGenerator(10)
-        dt = (1 / 10) / 8   # 1/8th of a period
+        dt = (1 / 10) / 8  # 1/8th of a period
 
         result = gen.sample(0)
         self.assertAlmostEqual(0.0, result)
