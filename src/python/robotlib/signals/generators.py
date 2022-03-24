@@ -90,8 +90,13 @@ class SineWaveGenerator(PeriodicSignalGenerator):
 
 
 class SquareWaveGenerator(PeriodicSignalGenerator):
-    def __init__(self, freq: float, duty_cycle: float = 0.5):
-        super().__init__(freq)
+    def __init__(
+            self,
+            freq: float = None,
+            period: float = None,
+            duty_cycle: float = 0.5
+    ):
+        super().__init__(freq=freq, period=period)
 
         self._duty_cycle = None
         self.set_duty_cycle(duty_cycle)
@@ -111,7 +116,7 @@ class SquareWaveGenerator(PeriodicSignalGenerator):
     def _get_sample(self) -> float:
         period_fraction = self._get_period_fraction()
         duty_cycle = self.get_duty_cycle()
-        return 0.0 if period_fraction < duty_cycle else 1.0
+        return 1.0 if period_fraction < duty_cycle else 0.0
 
     def _get_period_fraction(self) -> float:
         period = self.get_period()
