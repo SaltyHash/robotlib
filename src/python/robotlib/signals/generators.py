@@ -90,9 +90,7 @@ class SineWaveGenerator(PeriodicSignalGenerator):
         return math.sin(2 * pi * self._freq * self._t)
 
 
-class SquareWaveGenerator(PeriodicSignalGenerator):
-    """Alternates between outputting a 1.0 and a 0.0."""
-
+class PeriodicSignalGeneratorWithDutyCycle(PeriodicSignalGenerator, ABC):
     def __init__(
             self,
             freq: float = None,
@@ -103,6 +101,7 @@ class SquareWaveGenerator(PeriodicSignalGenerator):
         :param duty_cycle: The fraction of the period during which the output
             is 1.0. Should be in range [0.0, 1.0]. Defaults to 0.5 (50%).
         """
+
         super().__init__(freq=freq, period=period)
 
         self._duty_cycle = None
@@ -120,10 +119,10 @@ class SquareWaveGenerator(PeriodicSignalGenerator):
             raise ValueError(
                 f'duty_cycle must be in range [0.0, 1.0]; got {duty_cycle}.')
 
-    def _get_sample(self) -> float:
+    def _is_in_duty_cycle(self) -> bool:
         period_fraction = self._get_period_fraction()
         duty_cycle = self.get_duty_cycle()
-        return 1.0 if period_fraction < duty_cycle else 0.0
+        return period_fraction < duty_cycle
 
     def _get_period_fraction(self) -> float:
         period = self.get_period()
@@ -132,9 +131,29 @@ class SquareWaveGenerator(PeriodicSignalGenerator):
         return fraction
 
 
-class TriangleWaveGenerator(PeriodicSignalGenerator):
+class SquareWaveGenerator(PeriodicSignalGeneratorWithDutyCycle):
+    """Alternates between outputting a 1.0 and a 0.0."""
+
     def _get_sample(self) -> float:
-        raise NotImplementedError()
+        return 1.0 if self._is_in_duty_cycle() else 0.0
+
+
+class TriangleWaveGenerator(PeriodicSignalGeneratorWithDutyCycle):
+    def _get_sample(self) -> float:
+        if self._is_in_duty_cycle():
+            return self._get_upswing()
+        else:
+            return self._get_downswing()
+
+    def _get_upswing(self) -> float:
+        period_fraction = self._get_period_fraction()
+        duty_cycle_fraction = period_fraction / self.get_duty_cycle()
+        return duty_cycle_fraction
+
+    def _get_downswing(self) -> float:
+        remaining_period_fraction = 1.0 - self._get_period_fraction()
+        off_cycle = 1.0 - self.get_duty_cycle()
+        return remaining_period_fraction / off_cycle
 
 
 class RandomSignalGenerator(SignalGenerator, ABC):

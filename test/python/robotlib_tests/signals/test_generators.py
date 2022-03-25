@@ -3,7 +3,7 @@ from typing import Iterator
 
 from robotlib.signals.generators import SignalGenerator, SineWaveGenerator, \
     PeriodicSignalGenerator, SquareWaveGenerator, UniformRandomSignalGenerator, \
-    GaussianRandomSignalGenerator
+    GaussianRandomSignalGenerator, TriangleWaveGenerator
 from robotlib_tests.test import RobotlibTestCase as TestCase
 
 
@@ -213,6 +213,104 @@ class TestSquareWaveGenerator(TestCase):
         # 132% of period
         result = gen.sample(dt)
         self.assertAlmostEqual(1.0, result)
+
+
+class TestTriangleWaveGenerator(TestCase):
+    def test_sample__duty_cycle_50_percent(self):
+        gen = TriangleWaveGenerator(10, duty_cycle=0.5)
+        dt = 0.025
+
+        # 0% of period
+        result = gen.sample(0.0)
+        self.assertAlmostEqual(0.0, result)
+
+        # 25% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.5, result)
+
+        # 50% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(1.0, result)
+
+        # 75% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.5, result)
+
+        # 100% of period (beginning of repeat)
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.0, result)
+
+        # 125% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.5, result)
+
+    def test_sample__duty_cycle_25_percent(self):
+        gen = TriangleWaveGenerator(10, duty_cycle=0.25)
+        dt = 0.025
+
+        # 0% of period
+        result = gen.sample(0.0)
+        self.assertAlmostEqual(0.0, result)
+
+        # 25% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(1.0, result)
+
+        # 50% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.6666, result, places=3)
+
+        # 75% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.3333, result, places=3)
+
+        # 100% of period (beginning of repeat)
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.0, result)
+
+        # 125% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(1.0, result)
+
+    def test_sample__duty_cycle_0_percent__decreasing_triangle(self):
+        gen = TriangleWaveGenerator(1, duty_cycle=0.0)
+        dt = 0.5
+
+        # 0% of period
+        result = gen.sample(0.0)
+        self.assertAlmostEqual(1.0, result)
+
+        # 50% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.5, result)
+
+        # (100 - e)% of period (just before repeat)
+        result = gen.sample(dt - 0.0001)
+        self.assertAlmostEqual(0.0, result, places=3)
+
+        # 100% of period (beginning of repeat)
+        result = gen.sample(0.0001)
+        self.assertAlmostEqual(1.0, result)
+
+    def test_sample__duty_cycle_100_percent__increasing_triangle(self):
+        gen = TriangleWaveGenerator(1, duty_cycle=1.0)
+        dt = 0.5
+
+        # 0% of period
+        result = gen.sample(0.0)
+        self.assertAlmostEqual(0.0, result)
+
+        # 50% of period
+        result = gen.sample(dt)
+        self.assertAlmostEqual(0.5, result)
+
+        # (100 - e)% of period (just before repeat)
+        result = gen.sample(dt - 0.0001)
+        self.assertAlmostEqual(1.0, result, places=3)
+
+        # 100% of period (beginning of repeat)
+        result = gen.sample(0.0001)
+        self.assertAlmostEqual(0.0, result)
 
 
 class TestUniformRandomSignalGenerator(TestCase):
