@@ -1,10 +1,16 @@
 import unittest
 from typing import Iterator
 
-from robotlib.signals.generators import SignalGenerator, SineWaveGenerator, \
-    PeriodicSignalGenerator, SquareWaveGenerator, UniformRandomSignalGenerator, \
-    GaussianRandomSignalGenerator, TriangleWaveGenerator, \
+from robotlib.signals.generators import (
+    SignalGenerator,
+    SineWaveGenerator,
+    PeriodicSignalGenerator,
+    SquareWaveGenerator,
+    UniformRandomSignalGenerator,
+    GaussianRandomSignalGenerator,
+    TriangleWaveGenerator,
     WaveTableSignalGenerator
+)
 from robotlib_tests.test import RobotlibTestCase as TestCase
 
 
