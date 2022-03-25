@@ -3,7 +3,8 @@ from typing import Iterator
 
 from robotlib.signals.generators import SignalGenerator, SineWaveGenerator, \
     PeriodicSignalGenerator, SquareWaveGenerator, UniformRandomSignalGenerator, \
-    GaussianRandomSignalGenerator, TriangleWaveGenerator
+    GaussianRandomSignalGenerator, TriangleWaveGenerator, \
+    WaveTableSignalGenerator
 from robotlib_tests.test import RobotlibTestCase as TestCase
 
 
@@ -367,6 +368,53 @@ class TestGaussianRandomSignalGenerator(TestCase):
         ]
 
         self.assert_list_almost_equal(expected, results)
+
+
+class TestWaveTableSignalGenerator(TestCase):
+    def test_get_values(self):
+        values = [1, 2, 4, 8, 16]
+        gen = WaveTableSignalGenerator(values, freq=42)
+
+        results = gen.get_values()
+
+        self.assertIsNot(values, results)
+        self.assertListEqual(values, results)
+
+    def test_set_values_and_get_values(self):
+        values = [1, 2, 4, 8, 16]
+        gen = WaveTableSignalGenerator([0], freq=42)
+
+        gen.set_values(values)
+        results = gen.get_values()
+
+        self.assertIsNot(values, results)
+        self.assertListEqual(values, results)
+
+    def test_empty_values__raises_ValueError(self):
+        with self.assertRaises(ValueError):
+            WaveTableSignalGenerator([], freq=42)
+
+    def test_sample(self):
+        gen = WaveTableSignalGenerator([1, 2, 4, 8, 16], freq=1)
+        dt = 1 / 5
+
+        result = gen.sample(0.0)
+        self.assertEqual(1, result)
+
+        result = gen.sample(dt)
+        self.assertEqual(2, result)
+
+        result = gen.sample(dt)
+        self.assertEqual(4, result)
+
+        result = gen.sample(dt)
+        self.assertEqual(8, result)
+
+        result = gen.sample(dt)
+        self.assertEqual(16, result)
+
+        result = gen.sample(dt)
+        self.assertEqual(1, result)
 
 
 if __name__ == '__main__':

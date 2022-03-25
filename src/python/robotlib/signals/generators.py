@@ -2,7 +2,7 @@ import math
 import random
 from abc import ABC
 from math import pi
-from typing import Iterator
+from typing import Iterator, List
 
 
 class SignalGenerator(ABC):
@@ -84,6 +84,12 @@ class PeriodicSignalGenerator(SignalGenerator, ABC):
     def _get_sample(self) -> float:
         raise NotImplementedError()
 
+    def _get_period_fraction(self) -> float:
+        period = self.get_period()
+        t_in_period = self._t % period
+        fraction = t_in_period / period
+        return fraction
+
 
 class SineWaveGenerator(PeriodicSignalGenerator):
     def _get_sample(self) -> float:
@@ -123,12 +129,6 @@ class PeriodicSignalGeneratorWithDutyCycle(PeriodicSignalGenerator, ABC):
         period_fraction = self._get_period_fraction()
         duty_cycle = self.get_duty_cycle()
         return period_fraction < duty_cycle
-
-    def _get_period_fraction(self) -> float:
-        period = self.get_period()
-        t_in_period = self._t % period
-        fraction = t_in_period / period
-        return fraction
 
 
 class SquareWaveGenerator(PeriodicSignalGeneratorWithDutyCycle):
@@ -221,3 +221,35 @@ class GaussianRandomSignalGenerator(RandomSignalGenerator):
 
     def sample(self, dt: float) -> float:
         return self._rng.gauss(self.mean, self.std_dev)
+
+
+class WaveTableSignalGenerator(PeriodicSignalGenerator):
+    def __init__(
+            self,
+            values: List[float],
+            freq: float = None,
+            period: float = None
+    ):
+        super().__init__(freq, period)
+
+        self._values = None
+        self.set_values(values)
+
+    def get_values(self) -> List[float]:
+        return list(self._values)
+
+    def set_values(self, values: List[float]) -> None:
+        self._validate_values(values)
+        self._values = list(values)
+
+    def _validate_values(self, values: List[float]):
+        if not values:
+            raise ValueError('values cannot be empty.')
+
+    def _get_sample(self) -> float:
+        i = self._get_value_index()
+        return self._values[i]
+
+    def _get_value_index(self) -> int:
+        i = len(self._values) * self._get_period_fraction()
+        return int(i)
