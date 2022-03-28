@@ -157,6 +157,39 @@ class TriangleWaveGenerator(PeriodicSignalGeneratorWithDutyCycle):
         return remaining_period_fraction / off_cycle
 
 
+class WaveTableSignalGenerator(PeriodicSignalGenerator):
+    def __init__(
+            self,
+            values: List[float],
+            freq: float = None,
+            period: float = None,
+            clock: Clock = None
+    ):
+        super().__init__(freq, period, clock)
+
+        self._values = None
+        self.set_values(values)
+
+    def get_values(self) -> List[float]:
+        return list(self._values)
+
+    def set_values(self, values: List[float]) -> None:
+        self._validate_values(values)
+        self._values = list(values)
+
+    def _validate_values(self, values: List[float]):
+        if not values:
+            raise ValueError('values cannot be empty.')
+
+    def sample(self) -> float:
+        i = self._get_value_index()
+        return self._values[i]
+
+    def _get_value_index(self) -> int:
+        i = len(self._values) * self._get_period_fraction()
+        return int(i)
+
+
 class RandomSignalGenerator(SignalGenerator, ABC):
     def __init__(
             self,
@@ -222,36 +255,3 @@ class GaussianRandomSignalGenerator(RandomSignalGenerator):
 
     def sample(self) -> float:
         return self._rng.gauss(self.mean, self.std_dev)
-
-
-class WaveTableSignalGenerator(PeriodicSignalGenerator):
-    def __init__(
-            self,
-            values: List[float],
-            freq: float = None,
-            period: float = None,
-            clock: Clock = None
-    ):
-        super().__init__(freq, period, clock)
-
-        self._values = None
-        self.set_values(values)
-
-    def get_values(self) -> List[float]:
-        return list(self._values)
-
-    def set_values(self, values: List[float]) -> None:
-        self._validate_values(values)
-        self._values = list(values)
-
-    def _validate_values(self, values: List[float]):
-        if not values:
-            raise ValueError('values cannot be empty.')
-
-    def sample(self) -> float:
-        i = self._get_value_index()
-        return self._values[i]
-
-    def _get_value_index(self) -> int:
-        i = len(self._values) * self._get_period_fraction()
-        return int(i)
