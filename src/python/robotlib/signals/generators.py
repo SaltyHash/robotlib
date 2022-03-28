@@ -4,39 +4,51 @@ from abc import ABC
 from math import pi
 from typing import Iterator, List
 
+from robotlib.clocks import Clock, get_rtc
 
-class SignalGenerator(ABC):
-    def sample(self, dt: float) -> float:
+
+class SignalGenerator(Iterator[float], ABC):
+    def __iter__(self) -> Iterator[float]:
+        return self
+
+    def __next__(self) -> float:
+        return self.sample()
+
+    def sample(self) -> float:
+        """Returns a single sample."""
         raise NotImplementedError()
 
-    def sample_iter(
-            self,
-            dt: float,
-            sample_count: int = None
-    ) -> Iterator[float]:
-        """"""
-        if sample_count is None:
-            yield from self._sample_forever(dt)
-        else:
-            yield from self._sample_count(dt, sample_count)
-
-    def _sample_forever(self, dt: float) -> Iterator[float]:
-        while True:
-            yield self.sample(dt)
-
-    def _sample_count(self, dt: float, sample_count: int) -> Iterator[float]:
+    def sample_count(self, sample_count: int) -> Iterator[float]:
+        """Yields a certain number of samples."""
         for _ in range(sample_count):
-            yield self.sample(dt)
+            yield self.sample()
 
 
-class PeriodicSignalGenerator(SignalGenerator, ABC):
+class TimeDependentSignalGenerator(SignalGenerator, ABC):
+    def __init__(self, clock: Clock = None):
+        self._clock = clock or get_rtc()
+
+    @property
+    def _t(self) -> float:
+        """The current time."""
+        return self._clock.get_time()
+
+
+class PeriodicSignalGenerator(TimeDependentSignalGenerator, ABC):
     """A signal that repeats periodically."""
 
-    def __init__(self, freq: float = None, period: float = None):
+    def __init__(
+            self,
+            freq: float = None,
+            period: float = None,
+            clock: Clock = None
+    ):
         """
         :param freq: Frequency of the signal. Must be given if period is not.
         :param period: Period of the signal. Must be given if freq is not.
         """
+
+        super().__init__(clock)
 
         # Make sure one and only one of freq or period is set
         if freq is None and period is None:
@@ -53,8 +65,6 @@ class PeriodicSignalGenerator(SignalGenerator, ABC):
             self.set_period(period)
         else:
             raise RuntimeError('This should never be reached.')
-
-        self._t = 0.0
 
     def get_freq(self) -> float:
         return self._freq
@@ -74,16 +84,6 @@ class PeriodicSignalGenerator(SignalGenerator, ABC):
         if freq < 0:
             raise ValueError(f'freq must be >= 0; got {freq}.')
 
-    def sample(self, dt: float) -> float:
-        self._update_time(dt)
-        return self._get_sample()
-
-    def _update_time(self, dt: float) -> None:
-        self._t += dt
-
-    def _get_sample(self) -> float:
-        raise NotImplementedError()
-
     def _get_period_fraction(self) -> float:
         period = self.get_period()
         t_in_period = self._t % period
@@ -92,7 +92,7 @@ class PeriodicSignalGenerator(SignalGenerator, ABC):
 
 
 class SineWaveGenerator(PeriodicSignalGenerator):
-    def _get_sample(self) -> float:
+    def sample(self) -> float:
         return math.sin(2 * pi * self._freq * self._t)
 
 
@@ -101,14 +101,15 @@ class PeriodicSignalGeneratorWithDutyCycle(PeriodicSignalGenerator, ABC):
             self,
             freq: float = None,
             period: float = None,
-            duty_cycle: float = 0.5
+            duty_cycle: float = 0.5,
+            clock: Clock = None
     ):
         """
         :param duty_cycle: The fraction of the period during which the output
             is 1.0. Should be in range [0.0, 1.0]. Defaults to 0.5 (50%).
         """
 
-        super().__init__(freq=freq, period=period)
+        super().__init__(freq=freq, period=period, clock=clock)
 
         self._duty_cycle = None
         self.set_duty_cycle(duty_cycle)
@@ -134,12 +135,12 @@ class PeriodicSignalGeneratorWithDutyCycle(PeriodicSignalGenerator, ABC):
 class SquareWaveGenerator(PeriodicSignalGeneratorWithDutyCycle):
     """Alternates between outputting a 1.0 and a 0.0."""
 
-    def _get_sample(self) -> float:
+    def sample(self) -> float:
         return 1.0 if self._is_in_duty_cycle() else 0.0
 
 
 class TriangleWaveGenerator(PeriodicSignalGeneratorWithDutyCycle):
-    def _get_sample(self) -> float:
+    def sample(self) -> float:
         if self._is_in_duty_cycle():
             return self._get_upswing()
         else:
@@ -200,7 +201,7 @@ class UniformRandomSignalGenerator(RandomSignalGenerator):
         self.low = low
         self.high = high
 
-    def sample(self, dt: float) -> float:
+    def sample(self) -> float:
         return self._rng.uniform(self.low, self.high)
 
 
@@ -219,7 +220,7 @@ class GaussianRandomSignalGenerator(RandomSignalGenerator):
         self.mean = mean
         self.std_dev = std_dev
 
-    def sample(self, dt: float) -> float:
+    def sample(self) -> float:
         return self._rng.gauss(self.mean, self.std_dev)
 
 
@@ -228,9 +229,10 @@ class WaveTableSignalGenerator(PeriodicSignalGenerator):
             self,
             values: List[float],
             freq: float = None,
-            period: float = None
+            period: float = None,
+            clock: Clock = None
     ):
-        super().__init__(freq, period)
+        super().__init__(freq, period, clock)
 
         self._values = None
         self.set_values(values)
@@ -246,7 +248,7 @@ class WaveTableSignalGenerator(PeriodicSignalGenerator):
         if not values:
             raise ValueError('values cannot be empty.')
 
-    def _get_sample(self) -> float:
+    def sample(self) -> float:
         i = self._get_value_index()
         return self._values[i]
 

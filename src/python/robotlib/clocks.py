@@ -31,6 +31,14 @@ class RealTimeClock(Clock):
         time.sleep(secs)
 
 
+_RTC = RealTimeClock()
+
+
+def get_rtc() -> 'RealTimeClock':
+    """Returns a singleton instance of the ``RealTimeClock`` class."""
+    return _RTC
+
+
 class SimClock(Clock):
     """Simulated clock. Useful for simulations or testing."""
 

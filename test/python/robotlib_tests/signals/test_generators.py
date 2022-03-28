@@ -1,6 +1,7 @@
 import unittest
 from typing import Iterator
 
+from robotlib.clocks import SimClock
 from robotlib.signals.generators import (
     SignalGenerator,
     SineWaveGenerator,
@@ -19,7 +20,7 @@ class SignalGeneratorImpl(SignalGenerator):
         self.samples = samples
         self.i = 0
 
-    def sample(self, dt: float) -> float:
+    def sample(self) -> float:
         sample = self.samples[self.i]
 
         self.i += 1
@@ -33,47 +34,57 @@ class TestSignalGenerator(TestCase):
     def test_sample(self):
         gen = SignalGeneratorImpl([2, 4, 7])
 
-        result = gen.sample(0.1)
+        result = gen.sample()
         self.assertEqual(2, result)
 
-        result = gen.sample(0.1)
+        result = gen.sample()
         self.assertEqual(4, result)
 
-        result = gen.sample(0.1)
+        result = gen.sample()
         self.assertEqual(7, result)
 
-        result = gen.sample(0.1)
+        result = gen.sample()
         self.assertEqual(2, result)
 
-    def test_sample_iter__returns_iterator(self):
+    def test_sample_count__returns_iterator(self):
         gen = SignalGeneratorImpl([2, 4, 7])
 
-        result = gen.sample_iter(0.1)
+        result = gen.sample_count(3)
 
         self.assertIsInstance(result, Iterator)
 
-    def test_sample_iter__sample_count_int(self):
+    def test_sample_count__int(self):
         gen = SignalGeneratorImpl([2, 4, 7])
 
-        result = list(gen.sample_iter(0.1, 8))
+        result = list(gen.sample_count(8))
 
         self.assertListEqual([2, 4, 7, 2, 4, 7, 2, 4], result)
 
-    def test_sample_iter__sample_count_None(self):
+    def test_is_iterator(self):
         gen = SignalGeneratorImpl([2, 4, 7])
 
-        sample_iter = gen.sample_iter(0.1)
+        self.assertIsInstance(gen, Iterator)
 
-        self.assertEqual(2, next(sample_iter))
-        self.assertEqual(4, next(sample_iter))
-        self.assertEqual(7, next(sample_iter))
-        self.assertEqual(2, next(sample_iter))
-        self.assertEqual(4, next(sample_iter))
-        self.assertEqual(7, next(sample_iter))
+    def test_iter__returns_self(self):
+        gen = SignalGeneratorImpl([2, 4, 7])
+
+        result = iter(gen)
+
+        self.assertIs(gen, result)
+
+    def test_next(self):
+        gen = SignalGeneratorImpl([2, 4, 7])
+
+        self.assertEqual(2, next(gen))
+        self.assertEqual(4, next(gen))
+        self.assertEqual(7, next(gen))
+        self.assertEqual(2, next(gen))
+        self.assertEqual(4, next(gen))
+        self.assertEqual(7, next(gen))
 
 
 class PeriodicSignalGeneratorImpl(PeriodicSignalGenerator):
-    def _get_sample(self) -> float:
+    def sample(self) -> float:
         return 0.0
 
 
@@ -124,199 +135,241 @@ class TestPeriodicSignalGenerator(TestCase):
 
 
 class TestSineWaveGenerator(TestCase):
+    def setUp(self) -> None:
+        self.clock = SimClock()
+
     def test_sample(self):
-        gen = SineWaveGenerator(10)
+        gen = SineWaveGenerator(10, clock=self.clock)
         dt = (1 / 10) / 8  # 1/8th of a period
 
-        result = gen.sample(0)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.707, result, places=3)
 
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.707, result, places=3)
 
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
 
 class TestSquareWaveGenerator(TestCase):
+    def setUp(self) -> None:
+        self.clock = SimClock()
+
     def test_sample(self):
-        gen = SquareWaveGenerator(freq=10, duty_cycle=0.5)
+        gen = SquareWaveGenerator(freq=10, duty_cycle=0.5, clock=self.clock)
         dt = 0.025  # 1/4th of a period
 
         # 0% of period
-        result = gen.sample(0.0)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # 25% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # (50 - e)% of period, i.e. right before the end of the duty cycle
-        result = gen.sample(dt - 0.001)
+        self.clock.sleep(dt - 0.001)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # 50% of period, i.e. the end of the duty cycle
-        result = gen.sample(0.001)
+        self.clock.sleep(0.001)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 75% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 100% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
     def test_sample__duty_cycle_0__always_0(self):
-        gen = SquareWaveGenerator(freq=1, duty_cycle=0.0)
+        gen = SquareWaveGenerator(freq=1, duty_cycle=0.0, clock=self.clock)
         dt = 0.33  # 33% of period
 
         # 0% of period
-        result = gen.sample(0.0)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 33% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 66% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 99% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 132% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
     def test_sample__duty_cycle_1__always_1(self):
-        gen = SquareWaveGenerator(freq=1, duty_cycle=1.0)
+        gen = SquareWaveGenerator(freq=1, duty_cycle=1.0, clock=self.clock)
         dt = 0.33  # 33% of period
 
         # 0% of period
-        result = gen.sample(0.0)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # 33% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # 66% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # 99% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # 132% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
 
 class TestTriangleWaveGenerator(TestCase):
+    def setUp(self) -> None:
+        self.clock = SimClock()
+
     def test_sample__duty_cycle_50_percent(self):
-        gen = TriangleWaveGenerator(10, duty_cycle=0.5)
+        gen = TriangleWaveGenerator(10, duty_cycle=0.5, clock=self.clock)
         dt = 0.025
 
         # 0% of period
-        result = gen.sample(0.0)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 25% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.5, result)
 
         # 50% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # 75% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.5, result)
 
         # 100% of period (beginning of repeat)
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 125% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.5, result)
 
     def test_sample__duty_cycle_25_percent(self):
-        gen = TriangleWaveGenerator(10, duty_cycle=0.25)
+        gen = TriangleWaveGenerator(10, duty_cycle=0.25, clock=self.clock)
         dt = 0.025
 
         # 0% of period
-        result = gen.sample(0.0)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 25% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # 50% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.6666, result, places=3)
 
         # 75% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.3333, result, places=3)
 
         # 100% of period (beginning of repeat)
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 125% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
     def test_sample__duty_cycle_0_percent__decreasing_triangle(self):
-        gen = TriangleWaveGenerator(1, duty_cycle=0.0)
+        gen = TriangleWaveGenerator(1, duty_cycle=0.0, clock=self.clock)
         dt = 0.5
 
         # 0% of period
-        result = gen.sample(0.0)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
         # 50% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.5, result)
 
         # (100 - e)% of period (just before repeat)
-        result = gen.sample(dt - 0.0001)
+        self.clock.sleep(dt - 0.0001)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result, places=3)
 
         # 100% of period (beginning of repeat)
-        result = gen.sample(0.0001)
+        self.clock.sleep(0.0001)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result)
 
     def test_sample__duty_cycle_100_percent__increasing_triangle(self):
-        gen = TriangleWaveGenerator(1, duty_cycle=1.0)
+        gen = TriangleWaveGenerator(1, duty_cycle=1.0, clock=self.clock)
         dt = 0.5
 
         # 0% of period
-        result = gen.sample(0.0)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
         # 50% of period
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertAlmostEqual(0.5, result)
 
         # (100 - e)% of period (just before repeat)
-        result = gen.sample(dt - 0.0001)
+        self.clock.sleep(dt - 0.0001)
+        result = gen.sample()
         self.assertAlmostEqual(1.0, result, places=3)
 
         # 100% of period (beginning of repeat)
-        result = gen.sample(0.0001)
+        self.clock.sleep(0.0001)
+        result = gen.sample()
         self.assertAlmostEqual(0.0, result)
 
 
@@ -325,7 +378,7 @@ class TestUniformRandomSignalGenerator(TestCase):
         low, high = -2, 4
         gen = UniformRandomSignalGenerator(low=low, high=high)
 
-        results = list(gen.sample_iter(0.0, sample_count=10))
+        results = list(gen.sample_count(10))
 
         for sample in results:
             self.assertGreaterEqual(sample, low)
@@ -335,7 +388,7 @@ class TestUniformRandomSignalGenerator(TestCase):
         low, high = -2, 4
         gen = UniformRandomSignalGenerator(low=low, high=high, seed=1)
 
-        results = list(gen.sample_iter(0.0, sample_count=10))
+        results = list(gen.sample_count(10))
 
         expected = [
             -1.19381453,
@@ -357,7 +410,7 @@ class TestGaussianRandomSignalGenerator(TestCase):
     def test_samples__with_seed(self):
         gen = GaussianRandomSignalGenerator(mean=10, std_dev=1, seed=2)
 
-        results = list(gen.sample_iter(0.0, sample_count=10))
+        results = list(gen.sample_count(10))
         print(results)
 
         expected = [
@@ -377,6 +430,9 @@ class TestGaussianRandomSignalGenerator(TestCase):
 
 
 class TestWaveTableSignalGenerator(TestCase):
+    def setUp(self) -> None:
+        self.clock = SimClock()
+
     def test_get_values(self):
         values = [1, 2, 4, 8, 16]
         gen = WaveTableSignalGenerator(values, freq=42)
@@ -401,25 +457,34 @@ class TestWaveTableSignalGenerator(TestCase):
             WaveTableSignalGenerator([], freq=42)
 
     def test_sample(self):
-        gen = WaveTableSignalGenerator([1, 2, 4, 8, 16], freq=1)
+        gen = WaveTableSignalGenerator(
+            [1, 2, 4, 8, 16],
+            freq=1,
+            clock=self.clock
+        )
         dt = 1 / 5
 
-        result = gen.sample(0.0)
+        result = gen.sample()
         self.assertEqual(1, result)
 
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertEqual(2, result)
 
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertEqual(4, result)
 
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertEqual(8, result)
 
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertEqual(16, result)
 
-        result = gen.sample(dt)
+        self.clock.sleep(dt)
+        result = gen.sample()
         self.assertEqual(1, result)
 
 
