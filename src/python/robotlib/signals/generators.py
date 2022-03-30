@@ -135,8 +135,22 @@ class PeriodicSignalGeneratorWithDutyCycle(PeriodicSignalGenerator, ABC):
 class SquareWaveGenerator(PeriodicSignalGeneratorWithDutyCycle):
     """Alternates between outputting a 1.0 and a 0.0."""
 
+    def __init__(
+            self,
+            freq: float = None,
+            period: float = None,
+            duty_cycle: float = 0.5,
+            min_value: float = 0.0,
+            max_value: float = 1.0,
+            clock: Clock = None
+    ):
+        super().__init__(freq, period, duty_cycle, clock)
+
+        self.min_value = min_value
+        self.max_value = max_value
+
     def sample(self) -> float:
-        return 1.0 if self._is_in_duty_cycle() else 0.0
+        return self.max_value if self._is_in_duty_cycle() else self.min_value
 
 
 class TriangleWaveGenerator(PeriodicSignalGeneratorWithDutyCycle):

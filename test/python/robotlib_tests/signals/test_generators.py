@@ -167,37 +167,45 @@ class TestSquareWaveGenerator(TestCase):
         self.clock = SimClock()
 
     def test_sample(self):
-        gen = SquareWaveGenerator(freq=10, duty_cycle=0.5, clock=self.clock)
+        max_value = 1.5
+        min_value = -0.2
+        gen = SquareWaveGenerator(
+            freq=10,
+            duty_cycle=0.5,
+            min_value=min_value,
+            max_value=max_value,
+            clock=self.clock
+        )
         dt = 0.025  # 1/4th of a period
 
         # 0% of period
         result = gen.sample()
-        self.assertAlmostEqual(1.0, result)
+        self.assertAlmostEqual(max_value, result)
 
         # 25% of period
         self.clock.sleep(dt)
         result = gen.sample()
-        self.assertAlmostEqual(1.0, result)
+        self.assertAlmostEqual(max_value, result)
 
         # (50 - e)% of period, i.e. right before the end of the duty cycle
         self.clock.sleep(dt - 0.001)
         result = gen.sample()
-        self.assertAlmostEqual(1.0, result)
+        self.assertAlmostEqual(max_value, result)
 
         # 50% of period, i.e. the end of the duty cycle
         self.clock.sleep(0.001)
         result = gen.sample()
-        self.assertAlmostEqual(0.0, result)
+        self.assertAlmostEqual(min_value, result)
 
         # 75% of period
         self.clock.sleep(dt)
         result = gen.sample()
-        self.assertAlmostEqual(0.0, result)
+        self.assertAlmostEqual(min_value, result)
 
         # 100% of period
         self.clock.sleep(dt)
         result = gen.sample()
-        self.assertAlmostEqual(1.0, result)
+        self.assertAlmostEqual(max_value, result)
 
     def test_sample__duty_cycle_0__always_0(self):
         gen = SquareWaveGenerator(freq=1, duty_cycle=0.0, clock=self.clock)
