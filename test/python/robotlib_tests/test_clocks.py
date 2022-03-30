@@ -1,7 +1,7 @@
 import unittest
 from unittest import TestCase
 
-from robotlib.clocks import RealTimeClock, SimClock
+from robotlib.clocks import RealTimeClock, SimClock, OffsetClock
 
 
 class TestRealTimeClock(TestCase):
@@ -50,6 +50,24 @@ class TestFakeClock(TestCase):
 
         self.assertAlmostEqual(2.0, t0)
         self.assertAlmostEqual(3.2, t1)
+
+
+class TestOffsetClock(TestCase):
+    def test_offset_and_sleep(self):
+        init_time = 1.2
+        source_clock = SimClock(init_time=init_time)
+        offset = 3.4
+        offset_clock = OffsetClock(source_clock, offset)
+
+        self.assertAlmostEqual(init_time + offset, offset_clock.get_time())
+
+        sleep_time = 5.6
+        offset_clock.sleep(sleep_time)
+
+        self.assertAlmostEqual(
+            init_time + sleep_time + offset,
+            offset_clock.get_time()
+        )
 
 
 if __name__ == '__main__':

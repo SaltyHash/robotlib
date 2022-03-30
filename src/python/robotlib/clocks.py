@@ -68,3 +68,28 @@ class SimClock(Clock):
 
     def sleep(self, sleep_time: float) -> None:
         self.inc(sleep_time)
+
+
+class OffsetClock(Clock):
+    """Adds an offset to the time returned by a source clock."""
+
+    def __init__(self, source_clock: 'Clock', offset: float):
+        """
+        :param source_clock: The clock providing the time.
+        :param offset: The amount of time to add to the source clock's time.
+        """
+
+        self.source_clock = source_clock
+        self.offset = offset
+
+    def get_offset(self) -> float:
+        return self.offset
+
+    def set_offset(self, offset: float) -> None:
+        self.offset = offset
+
+    def get_time(self) -> float:
+        return self.source_clock.get_time() + self.offset
+
+    def sleep(self, secs: float) -> None:
+        self.source_clock.sleep(secs)
