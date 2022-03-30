@@ -31,7 +31,10 @@ class TimeDependentSignalGenerator(SignalGenerator, ABC):
     @property
     def _t(self) -> float:
         """The current time."""
-        return self._clock.get_time()
+        return self.get_clock().get_time()
+
+    def get_clock(self) -> Clock:
+        return self._clock
 
 
 class PeriodicSignalGenerator(TimeDependentSignalGenerator, ABC):
