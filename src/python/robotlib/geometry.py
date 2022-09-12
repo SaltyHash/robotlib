@@ -6,73 +6,92 @@ All functions assume degrees are in Radians unless specified otherwise.
 
 import math
 from math import pi
-from typing import Tuple
+from numbers import Real
+from typing import NamedTuple
 
 
-class Point2D:
-    __slots__ = (
-        'x',
-        'y'
-    )
-
-    def __init__(self, x: float = 0.0, y: float = 0.0):
-        self.x = x
-        self.y = y
-
-    def __abs__(self) -> float:
-        return math.sqrt(sum(
-            value ** 2 for value in self._get_dimensions()
-        ))
-
-    def _get_dimensions(self) -> Tuple:
-        return self.x, self.y
-
-    def __add__(self, other: 'Point2D') -> 'Point2D':
-        return Point2D(
-            x=self.x + other.x,
-            y=self.y + other.y
-        )
-
-    def __sub__(self, other: 'Point2D') -> 'Point2D':
-        return Point2D(
-            x=self.x - other.x,
-            y=self.y - other.y
-        )
-
-    def __eq__(self, other: 'Point2D') -> bool:
-        return self.x == other.x and self.y == other.y
+class Vector2d(NamedTuple):
+    x: Real
+    y: Real
 
     def __str__(self) -> str:
         return f'<x={self.x}, y={self.y}>'
 
+    def __abs__(self) -> 'Vector2d':
+        return Vector2d(abs(self.x), abs(self.y))
 
-class Point3D(Point2D):
+    def __add__(self, other) -> 'Vector2d':
+        other = self._to_vector2d(other)
+        return Vector2d(self.x + other.x, self.y + other.y)
+
+    def __radd__(self, other) -> 'Vector2d':
+        return self.__add__(other)
+
+    def __sub__(self, other) -> 'Vector2d':
+        other = self._to_vector2d(other)
+        return Vector2d(self.x - other.x, self.y - other.y)
+
+    def __rsub__(self, other) -> 'Vector2d':
+        other = self._to_vector2d(other)
+        return Vector2d(other.x - self.x, other.y - self.y)
+
+    def __mul__(self, other) -> 'Vector2d':
+        other = self._to_vector2d(other)
+        return Vector2d(self.x * other.x, self.y * other.y)
+
+    def __rmul__(self, other) -> 'Vector2d':
+        return self.__mul__(other)
+
+    def __truediv__(self, other) -> 'Vector2d':
+        other = self._to_vector2d(other)
+        return Vector2d(self.x / other.x, self.y / other.y)
+
+    def __rtruediv__(self, other) -> 'Vector2d':
+        other = self._to_vector2d(other)
+        return Vector2d(other.x / self.x, other.y / self.y)
+
+    def __floordiv__(self, other) -> 'Vector2d':
+        other = self._to_vector2d(other)
+        return Vector2d(self.x // other.x, self.y // other.y)
+
+    def __rfloordiv__(self, other) -> 'Vector2d':
+        other = self._to_vector2d(other)
+        return Vector2d(other.x // self.x, other.y // self.y)
+
+    def copy(self, x: Real = None, y: Real = None) -> 'Vector2d':
+        return Vector2d(
+            x=self.x if x is None else x,
+            y=self.y if y is None else y
+        )
+
+    def _to_vector2d(self, other) -> 'Vector2d':
+        if isinstance(other, Vector2d):
+            return other
+        elif isinstance(other, Real):
+            return Vector2d(other, other)
+        else:
+            return Vector2d(other[0], other[1])
+
+
+class Point3D:
     __slots__ = (
+        'x',
+        'y',
         'z'
     )
 
-    def __init__(self, x: float = 0.0, y: float = 0.0, z: float = 0.0):
-        super().__init__(x=x, y=y)
+    def __init__(self, x: Real, y: Real, z: Real):
+        self.x = x
+        self.y = y
         self.z = z
-
-    def _get_dimensions(self) -> Tuple:
-        return self.x, self.y, self.z
-
-    def __add__(self, other: 'Point3D') -> 'Point3D':
-        return Point3D(
-            x=self.x + other.x,
-            y=self.y + other.y,
-            z=self.z + other.z
-        )
-
-    def __eq__(self, other: 'Point3D') -> bool:
-        return super().__eq__(other) and self.z == other.z
 
     def __str__(self) -> str:
         return f'<x={self.x}, y={self.y}, z={self.z}>'
 
+    # TODO: Add math operations as in Point2d
 
-def angle_between(start_point: 'Point2D', end_point: 'Point2D') -> float:
+
+def angle_between(start_point: 'Vector2d', end_point: 'Vector2d') -> float:
     """
     Returns the angle in Radians from the start point to the end point,
     in the range (-pi, pi].
@@ -84,8 +103,8 @@ def angle_between(start_point: 'Point2D', end_point: 'Point2D') -> float:
 
 
 def angle_between_heading(
-        start_point: 'Point2D',
-        end_point: 'Point2D',
+        start_point: 'Vector2d',
+        end_point: 'Vector2d',
         heading: float
 ) -> float:
     """

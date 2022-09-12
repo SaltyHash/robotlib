@@ -4,26 +4,26 @@ from math import pi
 from parameterized import parameterized
 
 from robotlib import geometry
-from robotlib.geometry import Point2D, Point3D
+from robotlib.geometry import Vector2d, Point3D
 
 
 class AngleFunctionsTest(unittest.TestCase):
     @parameterized.expand([
         # [start_point, end_point, expected_angle]
-        [Point2D(0, 0), Point2D(0, 0), 0.0],
-        [Point2D(0, 0), Point2D(1, 0), 0.0],
-        [Point2D(0, 0), Point2D(1, 1), pi / 4],
-        [Point2D(0, 0), Point2D(0, 1), pi / 2],
-        [Point2D(0, 0), Point2D(-1, 1), 3 * pi / 4],
-        [Point2D(0, 0), Point2D(-1, 0), pi],
-        [Point2D(0, 0), Point2D(-1, -1), -3 * pi / 4],
-        [Point2D(0, 0), Point2D(0, -1), -pi / 2],
-        [Point2D(0, 0), Point2D(1, -1), -pi / 4],
+        [Vector2d(0, 0), Vector2d(0, 0), 0.0],
+        [Vector2d(0, 0), Vector2d(1, 0), 0.0],
+        [Vector2d(0, 0), Vector2d(1, 1), pi / 4],
+        [Vector2d(0, 0), Vector2d(0, 1), pi / 2],
+        [Vector2d(0, 0), Vector2d(-1, 1), 3 * pi / 4],
+        [Vector2d(0, 0), Vector2d(-1, 0), pi],
+        [Vector2d(0, 0), Vector2d(-1, -1), -3 * pi / 4],
+        [Vector2d(0, 0), Vector2d(0, -1), -pi / 2],
+        [Vector2d(0, 0), Vector2d(1, -1), -pi / 4],
     ])
     def test_angle_between(
             self,
-            start_point: Point2D,
-            end_point: Point2D,
+            start_point: Vector2d,
+            end_point: Vector2d,
             expected_angle: float
     ) -> None:
         actual_angle = geometry.angle_between(start_point, end_point)
@@ -31,16 +31,16 @@ class AngleFunctionsTest(unittest.TestCase):
 
     @parameterized.expand([
         # [start_point, end_point, heading, expected_angle]
-        [Point2D(0, 0), Point2D(0, 0), 0.0, 0.0],
-        [Point2D(0, 0), Point2D(0, 0), pi / 2, -pi / 2],
-        [Point2D(0, 0), Point2D(1, 1), 0.0, pi / 4],
-        [Point2D(0, 0), Point2D(1, 1), pi / 4, 0.0],
-        [Point2D(0, 0), Point2D(1, 1), -3 * pi / 4, pi],
+        [Vector2d(0, 0), Vector2d(0, 0), 0.0, 0.0],
+        [Vector2d(0, 0), Vector2d(0, 0), pi / 2, -pi / 2],
+        [Vector2d(0, 0), Vector2d(1, 1), 0.0, pi / 4],
+        [Vector2d(0, 0), Vector2d(1, 1), pi / 4, 0.0],
+        [Vector2d(0, 0), Vector2d(1, 1), -3 * pi / 4, pi],
     ])
     def test_angle_between_heading(
             self,
-            start_point: Point2D,
-            end_point: Point2D,
+            start_point: Vector2d,
+            end_point: Vector2d,
             heading: float,
             expected_angle: float
     ) -> None:
@@ -67,121 +67,81 @@ class AngleFunctionsTest(unittest.TestCase):
         self.assertAlmostEqual(expected_angle, actual_angle)
 
 
-class Point2DTest(unittest.TestCase):
-    @parameterized.expand([
-        # [point, expected_abs]
-        [Point2D(0, 0), 0],
-        [Point2D(1, 0), 1],
-        [Point2D(-1, 0), 1],
-        [Point2D(0, 2), 2],
-        [Point2D(0, -2), 2],
-        [Point2D(2, 3), 3.605551275],
-        [Point2D(-4, -9), 9.848857802],
-    ])
-    def test_abs(self, point: Point2D, expected_abs: float) -> None:
-        actual_abs = abs(point)
-        self.assertAlmostEqual(expected_abs, actual_abs)
+class TestVector2d(unittest.TestCase):
+    def setUp(self) -> None:
+        self.a = Vector2d(2, -3.)
+        self.b = Vector2d(-4, 5.)
 
-    def test_add(self) -> None:
-        point_a = Point2D(x=1, y=2)
-        point_b = Point2D(x=4, y=-5)
+    def test_repr(self):
+        self.assertEqual('Vector2d(x=2, y=-3.0)', repr(self.a))
 
-        point_c = point_a + point_b
+    def test_str(self):
+        self.assertEqual('<x=2, y=-3.0>', str(self.a))
 
-        self.assertEqual(5, point_c.x)
-        self.assertEqual(-3, point_c.y)
+    def test_abs(self):
+        self.assertEqual(Vector2d(2, 3), abs(self.a))
 
-    def test_sub(self) -> None:
-        point_a = Point2D(x=10, y=5)
-        point_b = Point2D(x=4, y=7)
+    def test_add(self):
+        self.assertEqual(Vector2d(-2, 2), self.a + self.b)
+        self.assertEqual(Vector2d(7, 2), self.a + 5)
+        self.assertEqual(Vector2d(7, 3), self.a + [5, 6])
 
-        point_c = point_a - point_b
+    def test_radd(self):
+        self.assertEqual(Vector2d(7, 2), 5 + self.a)
+        self.assertEqual(Vector2d(7, 3), [5, 6] + self.a)
 
-        self.assertEqual(6, point_c.x)
-        self.assertEqual(-2, point_c.y)
+    def test_sub(self):
+        self.assertEqual(Vector2d(6, -8), self.a - self.b)
+        self.assertEqual(Vector2d(-3, -8), self.a - 5)
+        self.assertEqual(Vector2d(-3, -9), self.a - [5, 6])
 
-    @parameterized.expand([
-        # [point_a, point_b]
-        [Point2D(0, 0), Point2D(0, 0)],
-        [Point2D(1, 0), Point2D(1, 0)],
-        [Point2D(0, -2), Point2D(0, -2)],
-        [Point2D(-3, 4), Point2D(-3, 4)],
-    ])
-    def test_eq__true(self, point_a: Point2D, point_b: Point2D) -> None:
-        self.assertEqual(point_a, point_b)
+    def test_rsub(self):
+        self.assertEqual(Vector2d(3, 8), 5 - self.a)
+        self.assertEqual(Vector2d(3, 9), [5, 6] - self.a)
 
-    @parameterized.expand([
-        # [point_a, point_b]
-        [Point2D(0, 0), Point2D(0, 1)],
-        [Point2D(1, 0), Point2D(0, 0)],
-        [Point2D(0, -2), Point2D(0, 2)],
-        [Point2D(-3, 4), Point2D(-3, -4)],
-    ])
-    def test_eq__false(self, point_a: Point2D, point_b: Point2D) -> None:
-        self.assertNotEqual(point_a, point_b)
+    def test_mul(self):
+        self.assertEqual(Vector2d(-8, -15), self.a * self.b)
+        self.assertEqual(Vector2d(10, -15), self.a * 5)
+        self.assertEqual(Vector2d(10, -18), self.a * [5, 6])
 
-    def test_str(self) -> None:
-        point = Point2D(x=1.2, y=3.4)
+    def test_rmul(self):
+        self.assertEqual(Vector2d(10, -15), 5 * self.a)
+        self.assertEqual(Vector2d(10, -18), [5, 6] * self.a)
 
-        result = str(point)
+    def test_truediv(self):
+        self.assertEqual(Vector2d(2 / -4, -3 / 5), self.a / self.b)
+        self.assertEqual(Vector2d(2 / 5, -3 / 5), self.a / 5)
+        self.assertEqual(Vector2d(2 / 5, -3 / 6), self.a / [5, 6])
 
-        self.assertEqual('<x=1.2, y=3.4>', result)
+    def test_rtruediv(self):
+        self.assertEqual(Vector2d(5 / 2, 5 / -3), 5 / self.a)
+        self.assertEqual(Vector2d(5 / 2, 6 / -3), [5, 6] / self.a)
+
+    def test_floordiv(self):
+        self.assertEqual(Vector2d(-1, -1), self.a // self.b)
+        self.assertEqual(Vector2d(0, -1), self.a // 5)
+        self.assertEqual(Vector2d(0, -1), self.a // [5, 6])
+
+    def test_rfloordiv(self):
+        self.assertEqual(Vector2d(2, -2), 5 // self.a)
+        self.assertEqual(Vector2d(2, -2), [5, 6] // self.a)
+
+    def test_copy(self):
+        c = self.a.copy()
+        self.assertEqual(self.a, c)
+        self.assertIsNot(self.a, c)
+
+        c = self.a.copy(x=123)
+        self.assertEqual(Vector2d(123, self.a.y), c)
+
+        c = self.a.copy(y=123)
+        self.assertEqual(Vector2d(self.a.x, 123), c)
 
 
-class Point3DTest(unittest.TestCase):
-    @parameterized.expand([
-        # [point, expected_abs]
-        [Point3D(0, 0, 0), 0],
-        [Point3D(1, 0, 0), 1],
-        [Point3D(-1, 0, 0), 1],
-        [Point3D(0, 2, 0), 2],
-        [Point3D(0, -2, 0), 2],
-        [Point3D(0, 0, 3), 3],
-        [Point3D(0, 0, -3), 3],
-        [Point3D(2, 3, 4), 5.385164807],
-        [Point3D(-5, -6, -7), 10.488088482],
-    ])
-    def test_abs(self, point: Point3D, expected_abs: float) -> None:
-        actual_abs = abs(point)
-        self.assertAlmostEqual(expected_abs, actual_abs)
-
-    def test_add(self) -> None:
-        point_a = Point3D(x=1, y=2, z=3)
-        point_b = Point3D(x=4, y=-5, z=20)
-
-        point_c = point_a + point_b
-
-        self.assertEqual(5, point_c.x)
-        self.assertEqual(-3, point_c.y)
-        self.assertEqual(23, point_c.z)
-
-    @parameterized.expand([
-        # [point_a, point_b]
-        [Point3D(0, 0, 0), Point3D(0, 0, 0)],
-        [Point3D(1, 0, 0), Point3D(1, 0, 0)],
-        [Point3D(0, -2, 0), Point3D(0, -2, 0)],
-        [Point3D(0, 0, 3), Point3D(0, 0, 3)],
-        [Point3D(-4, 5, -6), Point3D(-4, 5, -6)],
-    ])
-    def test_eq__true(self, point_a: Point3D, point_b: Point3D) -> None:
-        self.assertEqual(point_a, point_b)
-
-    @parameterized.expand([
-        # [point_a, point_b]
-        [Point3D(0, 0, 0), Point3D(1, 0, 0)],
-        [Point3D(1, 0, 0), Point3D(1, 2, 0)],
-        [Point3D(0, -2, 0), Point3D(0, -2, 3)],
-        [Point3D(-4, 5, -6), Point3D(-4, 5, 6)],
-    ])
-    def test_eq__false(self, point_a: Point3D, point_b: Point3D) -> None:
-        self.assertNotEqual(point_a, point_b)
-
+class TestPoint3d(unittest.TestCase):
     def test_str(self) -> None:
         point = Point3D(x=1.2, y=3.4, z=5.6)
-
-        result = str(point)
-
-        self.assertEqual('<x=1.2, y=3.4, z=5.6>', result)
+        self.assertEqual('<x=1.2, y=3.4, z=5.6>', str(point))
 
 
 if __name__ == '__main__':
