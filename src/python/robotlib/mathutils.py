@@ -1,5 +1,4 @@
-from numbers import Real
-from typing import Optional, NamedTuple
+from typing import Optional
 
 
 class Clipper:
@@ -91,57 +90,3 @@ class LinearExtrapolator:
         value = self._m * (x - self._x0) + self._y0
         value = self._clipper(value)
         return value
-
-
-class Point2d(NamedTuple):
-    x: Real
-    y: Real
-
-    def __abs__(self) -> 'Point2d':
-        return Point2d(abs(self.x), abs(self.y))
-
-    def __add__(self, other) -> 'Point2d':
-        other = self._to_point2d(other)
-        return Point2d(self.x + other.x, self.y + other.y)
-
-    def __radd__(self, other) -> 'Point2d':
-        return self.__add__(other)
-
-    def __sub__(self, other) -> 'Point2d':
-        other = self._to_point2d(other)
-        return Point2d(self.x - other.x, self.y - other.y)
-
-    def __rsub__(self, other) -> 'Point2d':
-        other = self._to_point2d(other)
-        return Point2d(other.x - self.x, other.y - self.y)
-
-    def __mul__(self, other) -> 'Point2d':
-        other = self._to_point2d(other)
-        return Point2d(self.x * other.x, self.y * other.y)
-
-    def __rmul__(self, other) -> 'Point2d':
-        return self.__mul__(other)
-
-    def __truediv__(self, other) -> 'Point2d':
-        other = self._to_point2d(other)
-        return Point2d(self.x / other.x, self.y / other.y)
-
-    def __rtruediv__(self, other) -> 'Point2d':
-        other = self._to_point2d(other)
-        return Point2d(other.x / self.x, other.y / self.y)
-
-    def __floordiv__(self, other) -> 'Point2d':
-        other = self._to_point2d(other)
-        return Point2d(self.x // other.x, self.y // other.y)
-
-    def __rfloordiv__(self, other) -> 'Point2d':
-        other = self._to_point2d(other)
-        return Point2d(other.x // self.x, other.y // self.y)
-
-    def _to_point2d(self, other) -> 'Point2d':
-        if isinstance(other, Point2d):
-            return other
-        elif isinstance(other, Real):
-            return Point2d(other, other)
-        else:
-            return Point2d(other[0], other[1])

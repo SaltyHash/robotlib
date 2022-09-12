@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from parameterized import parameterized
 
-from robotlib.mathutils import Clipper, LinearExtrapolator, Point2d
+from robotlib.mathutils import Clipper, LinearExtrapolator
 
 
 class TestClipper(TestCase):
@@ -128,60 +128,6 @@ class TestLinearExtrapolator(TestCase):
         actual_y = extrapolator.extrapolate(x)
 
         self.assertAlmostEqual(expected_y, actual_y)
-
-
-class TestPoint2d(TestCase):
-    def setUp(self) -> None:
-        self.a = Point2d(2, -3.)
-        self.b = Point2d(-4, 5.)
-
-    def test_abs(self):
-        self.assertEqual(Point2d(2, 3), abs(self.a))
-
-    def test_add(self):
-        self.assertEqual(Point2d(-2, 2), self.a + self.b)
-        self.assertEqual(Point2d(7, 2), self.a + 5)
-        self.assertEqual(Point2d(7, 3), self.a + [5, 6])
-
-    def test_radd(self):
-        self.assertEqual(Point2d(7, 2), 5 + self.a)
-        self.assertEqual(Point2d(7, 3), [5, 6] + self.a)
-
-    def test_sub(self):
-        self.assertEqual(Point2d(6, -8), self.a - self.b)
-        self.assertEqual(Point2d(-3, -8), self.a - 5)
-        self.assertEqual(Point2d(-3, -9), self.a - [5, 6])
-
-    def test_rsub(self):
-        self.assertEqual(Point2d(3, 8), 5 - self.a)
-        self.assertEqual(Point2d(3, 9), [5, 6] - self.a)
-
-    def test_mul(self):
-        self.assertEqual(Point2d(-8, -15), self.a * self.b)
-        self.assertEqual(Point2d(10, -15), self.a * 5)
-        self.assertEqual(Point2d(10, -18), self.a * [5, 6])
-
-    def test_rmul(self):
-        self.assertEqual(Point2d(10, -15), 5 * self.a)
-        self.assertEqual(Point2d(10, -18), [5, 6] * self.a)
-
-    def test_truediv(self):
-        self.assertEqual(Point2d(2 / -4, -3 / 5), self.a / self.b)
-        self.assertEqual(Point2d(2 / 5, -3 / 5), self.a / 5)
-        self.assertEqual(Point2d(2 / 5, -3 / 6), self.a / [5, 6])
-
-    def test_rtruediv(self):
-        self.assertEqual(Point2d(5 / 2, 5 / -3), 5 / self.a)
-        self.assertEqual(Point2d(5 / 2, 6 / -3), [5, 6] / self.a)
-
-    def test_floordiv(self):
-        self.assertEqual(Point2d(-1, -1), self.a // self.b)
-        self.assertEqual(Point2d(0, -1), self.a // 5)
-        self.assertEqual(Point2d(0, -1), self.a // [5, 6])
-
-    def test_rfloordiv(self):
-        self.assertEqual(Point2d(2, -2), 5 // self.a)
-        self.assertEqual(Point2d(2, -2), [5, 6] // self.a)
 
 
 if __name__ == '__main__':
