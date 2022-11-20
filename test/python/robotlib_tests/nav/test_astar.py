@@ -46,6 +46,8 @@ class AStarTest(unittest.TestCase):
         expected_cum_costs = [0, 1, 2, 3, 4, 5, 6]
         np.testing.assert_equal(result.cum_costs, expected_cum_costs)
 
+        self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
+
     def test_small__diagonal_allowed(self):
         self.world = ArrayGridWorld(np.array([
             [0, 0, 0],
@@ -78,6 +80,8 @@ class AStarTest(unittest.TestCase):
         ]
         np.testing.assert_almost_equal(result.cum_costs, expected_cum_costs)
 
+        self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
+
     def test_small__no_path(self):
         self.world = ArrayGridWorld(np.array([
             [0, 1, 0],
@@ -99,6 +103,8 @@ class AStarTest(unittest.TestCase):
 
         expected_cum_costs = [0, 1]
         np.testing.assert_equal(result.cum_costs, expected_cum_costs)
+
+        self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
 
     def test_large(self):
         self.world = ArrayGridWorld(np.array([
@@ -122,11 +128,12 @@ class AStarTest(unittest.TestCase):
             (6, 1), (6, 2), (6, 3), (6, 4), (6, 5), (6, 6), (6, 7), (6, 8), (6, 9),
             (5, 9), (4, 9), (3, 9), (2, 9), (1, 9), (0, 9)
         ]
-
         np.testing.assert_equal(result.nodes, expected_nodes)
 
         expected_cum_costs = list(range(len(expected_nodes)))
         np.testing.assert_equal(result.cum_costs, expected_cum_costs)
+
+        self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
 
 
 if __name__ == '__main__':
