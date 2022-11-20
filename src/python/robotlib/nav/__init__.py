@@ -39,6 +39,14 @@ class NavPath:
         return self.nodes[-1]
 
     @property
+    def nodes_without_start(self) -> Tuple['PathNode']:
+        return self.nodes[1:]
+
+    @property
+    def nodes_without_end(self) -> Tuple['PathNode']:
+        return self.nodes[:-1]
+
+    @property
     def nodes_without_ends(self) -> Tuple['PathNode']:
         return self.nodes[1:-1]
 

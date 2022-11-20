@@ -1,6 +1,6 @@
 import math
 from queue import PriorityQueue
-from typing import Callable, Iterable, Tuple, Dict
+from typing import Callable, Iterable, Tuple
 
 from robotlib.nav import Nav, PathNode, NavPath
 from robotlib.nav.heuristics import euclidean_heuristic
@@ -26,81 +26,84 @@ class AStar(Nav):
         self.max_steps = or_default(max_steps, math.inf)
         self.max_cost = or_default(max_cost, math.inf)
 
-        self._came_from: dict
-
-    def _reset(self) -> None:
-        self._came_from = {}
-
     def get_path(self, start: PathNode, end: PathNode, run_limit: RunLimit = None) -> NavPath:
-        self._reset()
+        self._setup(start, end)
 
-        if run_limit is None:
-            run_limit = True
-
-        open_set = _OpenSet()
-        open_set.add_if_not_in(start, 0.)
-
-        # Lowest cost to get to each node
-        g_scores = DictWithDefault(math.inf)
-        g_scores[start] = 0.
-
-        closest = start
-        closest_dist = (self.heuristic(closest, end), g_scores[closest])
+        run_limit = or_default(run_limit, True)
 
         steps = 0
-        while open_set and steps < self.max_steps and run_limit:
+        while self._open_set and steps < self.max_steps and run_limit:
             steps += 1
 
-            current = open_set.pop()
-            if current == end:
-                closest = current
+            current = self._open_set.pop()
+            if current == self._end:
+                self._closest = current
                 break
 
             # Using this tuple ensures the cell closest to the end will be chosen,
             # and if two cells have the same distance to the end, then the cell
             # with the lowest g-score (cost to get to) is chosen
-            current_dist = (self.heuristic(current, end), g_scores[current])
-            if current_dist < closest_dist:
-                closest = current
-                closest_dist = current_dist
+            current_dist = (self.heuristic(current, self._end), self._g_scores[current])
+            if current_dist < self._closest_dist:
+                self._closest = current
+                self._closest_dist = current_dist
 
             for neighbor, cost in self.neighbor_func(current):
-                g_score = g_scores[current] + cost
-                if g_score >= g_scores[neighbor]:
+                g_score = self._g_scores[current] + cost
+                if g_score >= self._g_scores[neighbor]:
                     continue
 
-                f_score = g_score + self.heuristic(neighbor, end)
+                f_score = g_score + self.heuristic(neighbor, self._end)
                 if self._cost_is_too_high(f_score):
                     continue
 
                 self._came_from[neighbor] = current
-                g_scores[neighbor] = g_score
+                self._g_scores[neighbor] = g_score
 
-                open_set.add_if_not_in(neighbor, f_score)
+                self._open_set.add_if_not_in(neighbor, f_score)
 
-        return self._build_path(closest, g_scores, is_complete=closest == end)
+        try:
+            return self._build_path()
+        finally:
+            self._cleanup()
+
+    def _setup(self, start: PathNode, end: PathNode) -> None:
+        self._end = end
+
+        self._open_set = _OpenSet()
+        self._open_set.add_if_not_in(start, 0.)
+
+        # Lowest cost to get to each node
+        self._g_scores = DictWithDefault(math.inf)
+        self._g_scores[start] = 0.
+
+        self._closest = start
+        self._closest_dist = (self.heuristic(start, end), 0.)
+
+        self._came_from = {}
 
     def _cost_is_too_high(self, cost: float) -> bool:
         return self.max_cost is not None and cost > self.max_cost
 
-    def _build_path(
-            self,
-            current: PathNode,
-            g_score: Dict[PathNode, float],
-            is_complete: bool,
-    ) -> NavPath:
+    def _build_path(self) -> NavPath:
+        current = self._closest
+
         nodes = [current]
-        cum_costs = [g_score[current]]
+        cum_costs = [self._g_scores[current]]
 
         while current in self._came_from:
             current = self._came_from[current]
             nodes.append(current)
-            cum_costs.append(g_score[current])
+            cum_costs.append(self._g_scores[current])
 
         nodes.reverse()
         cum_costs.reverse()
 
-        return NavPath(nodes, cum_costs, is_complete)
+        return NavPath(nodes, cum_costs, is_complete=self._closest == self._end)
+
+    def _cleanup(self) -> None:
+        self._open_set = None
+        self._g_scores = None
 
 
 class _OpenSet:
