@@ -41,8 +41,10 @@ class AStarTest(unittest.TestCase):
             (1, 2),
             (2, 2),
         ]
-
         np.testing.assert_equal(result.nodes, expected_nodes)
+
+        expected_cum_costs = [0, 1, 2, 3, 4, 5, 6]
+        np.testing.assert_equal(result.cum_costs, expected_cum_costs)
 
     def test_small__diagonal_allowed(self):
         self.world = ArrayGridWorld(np.array([
@@ -64,8 +66,17 @@ class AStarTest(unittest.TestCase):
             (1, 2),
             (2, 2),
         ]
-
         np.testing.assert_equal(result.nodes, expected_nodes)
+
+        s = np.sqrt(2)
+        expected_cum_costs = [
+            0 + 0 * s,
+            1 + 0 * s,
+            1 + 1 * s,
+            1 + 2 * s,
+            2 + 2 * s,
+        ]
+        np.testing.assert_almost_equal(result.cum_costs, expected_cum_costs)
 
     def test_small__no_path(self):
         self.world = ArrayGridWorld(np.array([
@@ -84,8 +95,10 @@ class AStarTest(unittest.TestCase):
             (2, 0),
             (1, 0),
         ]
-
         np.testing.assert_equal(result.nodes, expected_nodes)
+
+        expected_cum_costs = [0, 1]
+        np.testing.assert_equal(result.cum_costs, expected_cum_costs)
 
     def test_large(self):
         self.world = ArrayGridWorld(np.array([
@@ -111,6 +124,9 @@ class AStarTest(unittest.TestCase):
         ]
 
         np.testing.assert_equal(result.nodes, expected_nodes)
+
+        expected_cum_costs = list(range(len(expected_nodes)))
+        np.testing.assert_equal(result.cum_costs, expected_cum_costs)
 
 
 if __name__ == '__main__':
