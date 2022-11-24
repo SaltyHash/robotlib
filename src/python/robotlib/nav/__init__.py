@@ -1,12 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, Tuple, Union
-
-import numpy as np
+from typing import Iterable, Tuple, Protocol, Any
 
 
 class Nav(ABC):
     @abstractmethod
-    def get_path(self, start: 'PathNode', end: 'PathNode') -> 'NavPath':
+    def get_path(self, start: 'PathNode', goal: 'PathNode') -> 'NavPath':
         ...
 
 
@@ -15,13 +13,15 @@ class NavPath:
 
     def __init__(
             self,
-            path_nodes: Iterable['PathNode'],
+            nodes: Iterable['PathNode'],
             cum_costs: Iterable[float],
-            is_complete: bool,
+            goal: 'PathNode',
     ):
-        self.nodes = tuple(path_nodes)
+        self.nodes = tuple(nodes)
         self.cum_costs = tuple(cum_costs)
-        self.is_complete = is_complete
+        self.goal = goal
+
+        self.is_complete = self.end == goal
 
         inc_costs = [0.]
         for i in range(1, len(self.cum_costs)):
@@ -75,4 +75,7 @@ class NavPath:
         return '\n'.join(lines)
 
 
-PathNode = Union[np.ndarray, tuple]
+class PathNode(Protocol):
+    def __eq__(self, other: Any) -> bool: ...
+
+    def __hash__(self) -> int: ...
