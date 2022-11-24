@@ -138,5 +138,10 @@ class AStarTest(unittest.TestCase):
         self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
 
 
+class BidirAStarTest(unittest.TestCase):
+    # TODO
+    ...
+
+
 if __name__ == '__main__':
     unittest.main()
