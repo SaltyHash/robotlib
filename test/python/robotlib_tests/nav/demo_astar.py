@@ -6,7 +6,7 @@ from typing import Iterable, Tuple
 import numpy as np
 
 from robotlib.nav import PathNode, NavPath
-from robotlib.nav.astar import AStar
+from robotlib.nav.astar import AStar, BidirAStar
 from robotlib.nav.heuristics import euclidean_heuristic
 from robotlib.utils import Timer, RuntimeLimit
 
@@ -62,10 +62,11 @@ class ArrayGridWorld(GridWorld):
 
 
 class RandomGridWorld(GridWorld):
-    def __init__(self, seed=0, obstacle_density: float = 0.2, chunk_size: int = 1):
+    def __init__(self, seed=0, obstacle_density: float = 0.2, chunk_size: int = 1, diag_allowed: bool = True):
         self.seed = seed
         self.obstacle_density = obstacle_density
         self.chunk_size = chunk_size
+        self.diag_allowed = diag_allowed
         self.r = random.Random()
 
     def contains(self, location: np.ndarray) -> bool:
@@ -77,7 +78,18 @@ class RandomGridWorld(GridWorld):
         return self.r.random() > self.obstacle_density
 
     def can_move(self, start: np.ndarray, end: np.ndarray) -> bool:
-        return euclidean_heuristic(start, end) <= 1  # 2 ** .5
+        max_dist = 2 ** .5 if self.diag_allowed else 1.
+        dist = euclidean_heuristic(start, end)
+        if dist > max_dist:
+            return False
+
+        is_diag = dist > 1.
+        if is_diag:
+            corner1 = np.array((start[0], end[1]))
+            corner2 = np.array((end[0], start[1]))
+            return self.is_open(corner1) or self.is_open(corner2)
+        else:
+            return True
 
 
 class GridWorldViz:
@@ -124,15 +136,15 @@ class GridWorldViz:
         if coord_is_in_range(start):
             grid_letters[start] = 'S'
 
-        for node in nav_path.nodes_without_ends:
+        for node in nav_path.nodes_without_start:
             node = node2coord(node)
             if coord_is_in_range(node):
                 assert grid_letters[node] == self.EMPTY
                 grid_letters[node] = '*'
 
-        end = node2coord(nav_path.end)
-        if coord_is_in_range(end):
-            grid_letters[end] = 'G'
+        goal = node2coord(nav_path.goal)
+        if coord_is_in_range(goal):
+            grid_letters[goal] = 'G'
 
     def add_padding(self, grid_letters: np.ndarray) -> np.ndarray:
         top_char = '▄'
@@ -167,9 +179,15 @@ def main():
         [0, 1, 0, 1, 0, 0, 0, 0, 1, 0],
         [0, 1, 0, 1, 1, 1, 1, 0, 1, 0],
         [0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
-    ]))
+    ]), diag_allowed=True)
 
-    grid_world = RandomGridWorld(seed=3, obstacle_density=0.4, chunk_size=np.array([2, 1]) * 3)
+    grid_world = RandomGridWorld(
+        # Fun seeds: 3, 19, 34
+        seed=0,
+        obstacle_density=0.4,
+        chunk_size=np.array([2, 1]) * 3,
+        diag_allowed=True,
+    )
 
     heuristic = euclidean_heuristic
 
@@ -184,28 +202,33 @@ def main():
     while not grid_world.is_open((dist, 0)):
         dist -= 1
 
-    nav = AStar(
+    # nav = AStar(
+    nav = BidirAStar(
         neighbor_func=get_neighbors,
         heuristic=heuristic,
         max_steps=None,
-        max_cost=None  # dist * np.pi,
+        max_cost=None,
+        # stop_if_no_path=True,
     )
 
-    with Timer() as timer, RuntimeLimit(10) as run_limit:
+    with Timer() as timer, RuntimeLimit(5) as run_limit:
         path = nav.get_path(
             start=(0, 0),
-            end=(dist, 0),
-            run_limit=run_limit
+            goal=(dist, 0),
+            run_limit=run_limit,
         )
         timer = str(timer)
 
     print(path)
+    print(f'hash(path.nodes) = {hash(path.nodes)}')
+    print(nav.stats)
     print(timer)
 
-    min_x = min(n[0] for n in path.nodes)
-    min_y = min(n[1] for n in path.nodes)
-    max_x = max(n[0] for n in path.nodes)
-    max_y = max(n[1] for n in path.nodes)
+    path_nodes = [*path.nodes, path.goal]
+    min_x = min(n[0] for n in path_nodes)
+    min_y = min(n[1] for n in path_nodes)
+    max_x = max(n[0] for n in path_nodes)
+    max_y = max(n[1] for n in path_nodes)
 
     GridWorldViz(grid_world).print(
         (min_x - 1, min_y - 1),

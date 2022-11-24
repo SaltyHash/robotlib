@@ -11,6 +11,7 @@ from robotlib_tests.nav.demo_astar import ArrayGridWorld
 
 class AStarTest(unittest.TestCase):
     def setUp(self) -> None:
+        self.target_builder = AStar
         self.heuristic = euclidean_heuristic
         self.world = ...
 
@@ -26,7 +27,7 @@ class AStarTest(unittest.TestCase):
             [0, 1, 0],
         ]), diag_allowed=False)
 
-        target = AStar(self.get_neighbors)
+        target = self.target_builder(self.get_neighbors)
 
         result = target.get_path((2, 0), (2, 2))
 
@@ -41,10 +42,10 @@ class AStarTest(unittest.TestCase):
             (1, 2),
             (2, 2),
         ]
-        np.testing.assert_equal(result.nodes, expected_nodes)
+        np.testing.assert_array_equal(result.nodes, expected_nodes)
 
         expected_cum_costs = [0, 1, 2, 3, 4, 5, 6]
-        np.testing.assert_equal(result.cum_costs, expected_cum_costs)
+        np.testing.assert_array_equal(result.cum_costs, expected_cum_costs)
 
         self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
 
@@ -55,7 +56,7 @@ class AStarTest(unittest.TestCase):
             [0, 1, 0],
         ]), diag_allowed=True)
 
-        target = AStar(self.get_neighbors)
+        target = self.target_builder(self.get_neighbors)
 
         result = target.get_path((2, 0), (2, 2))
 
@@ -68,7 +69,7 @@ class AStarTest(unittest.TestCase):
             (1, 2),
             (2, 2),
         ]
-        np.testing.assert_equal(result.nodes, expected_nodes)
+        np.testing.assert_array_equal(result.nodes, expected_nodes)
 
         s = np.sqrt(2)
         expected_cum_costs = [
@@ -78,7 +79,7 @@ class AStarTest(unittest.TestCase):
             1 + 2 * s,
             2 + 2 * s,
         ]
-        np.testing.assert_almost_equal(result.cum_costs, expected_cum_costs)
+        np.testing.assert_array_almost_equal(result.cum_costs, expected_cum_costs)
 
         self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
 
@@ -89,7 +90,7 @@ class AStarTest(unittest.TestCase):
             [0, 1, 0],
         ]), diag_allowed=True)
 
-        target = AStar(self.get_neighbors)
+        target = self.target_builder(self.get_neighbors)
 
         result = target.get_path((2, 0), (1, 2))
 
@@ -99,10 +100,10 @@ class AStarTest(unittest.TestCase):
             (2, 0),
             (1, 0),
         ]
-        np.testing.assert_equal(result.nodes, expected_nodes)
+        np.testing.assert_array_equal(result.nodes, expected_nodes)
 
         expected_cum_costs = [0, 1]
-        np.testing.assert_equal(result.cum_costs, expected_cum_costs)
+        np.testing.assert_array_equal(result.cum_costs, expected_cum_costs)
 
         self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
 
@@ -117,7 +118,7 @@ class AStarTest(unittest.TestCase):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ]), diag_allowed=False)
 
-        target = AStar(self.get_neighbors)
+        target = self.target_builder(self.get_neighbors)
 
         result = target.get_path((0, 0), (0, 9))
 
@@ -128,10 +129,11 @@ class AStarTest(unittest.TestCase):
             (6, 1), (6, 2), (6, 3), (6, 4), (6, 5), (6, 6), (6, 7), (6, 8), (6, 9),
             (5, 9), (4, 9), (3, 9), (2, 9), (1, 9), (0, 9)
         ]
-        np.testing.assert_equal(result.nodes, expected_nodes)
+        print(result.nodes)
+        np.testing.assert_array_equal(result.nodes, expected_nodes)
 
         expected_cum_costs = list(range(len(expected_nodes)))
-        np.testing.assert_equal(result.cum_costs, expected_cum_costs)
+        np.testing.assert_array_equal(result.cum_costs, expected_cum_costs)
 
         self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
 
