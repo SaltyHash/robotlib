@@ -1,5 +1,5 @@
-import math
 from dataclasses import dataclass
+from math import inf
 from queue import PriorityQueue
 from typing import Callable, Iterable, Tuple
 
@@ -22,16 +22,26 @@ class AStar(Nav):
             max_steps: int = None,
             max_cost: float = None,
     ):
+        """
+        :param neighbor_func: For a given node, it should return an iterable of tuples (neighbor, cost).
+        :param heuristic: An estimation of the cost to go from one node to another. Must be "admissible", i.e.
+            it may be an under-estimation of the true cost, but it may not be an over-estimation. Euclidian distance
+            (the default) is good for most worlds, as the shortest distance between two points is a straight line.
+        :param max_steps: Maximum number of nodes to evaluate before stopping. If None (the default), there is no limit.
+        :param max_cost: Maximum estimated total cost (f-score) of nodes to explore. If None (the default),
+            there is no limit.
+        """
+
         self.neighbor_func = neighbor_func
         self.heuristic = heuristic
-        self.max_steps = or_default(max_steps, math.inf)
-        self.max_cost = or_default(max_cost, math.inf)
+        self.max_steps = or_default(max_steps, inf)
+        self.max_cost = or_default(max_cost, inf)
 
         self.stats: AStar.Stats
 
         self._goal: PathNode
         self._open_set = _OpenSet()
-        self._g_scores = DictWithDefault(math.inf)
+        self._g_scores = DictWithDefault(inf)
         self._closest: PathNode
         self._closest_dist: float
         self._came_from = {}
@@ -63,7 +73,7 @@ class AStar(Nav):
         self._closest_dist = (self.heuristic(start, goal), 0.)
 
     def _is_searching(self) -> bool:
-        return self._closest != self._goal and bool(self._open_set)
+        return self._closest != self._goal and not self._open_set.is_empty()
 
     def _step(self):
         current = self._current = self._open_set.pop()
@@ -139,10 +149,13 @@ class BidirAStar(Nav):
             stop_if_no_path: bool = False,
     ):
         """
-        :param neighbor_func:
-        :param heuristic:
-        :param max_steps:
-        :param max_cost:
+        :param neighbor_func: For a given node, it should return an iterable of tuples (neighbor, cost).
+        :param heuristic: An estimation of the cost to go from one node to another. Must be "admissible", i.e.
+            it may be an under-estimation of the true cost, but it may not be an over-estimation. Euclidian distance
+            (the default) is good for most worlds, as the shortest distance between two points is a straight line.
+        :param max_steps: Maximum number of nodes to evaluate before stopping. If None (the default), there is no limit.
+        :param max_cost: Maximum estimated total cost (f-score) of nodes to explore. If None (the default),
+            there is no limit.
         :param stop_if_no_path: (default: False) if True, then if the backwards search determines there is no path from
             the goal to the start, this will return early with a path from the start to whatever node is the closest to
             the goal, as far as the forward search has seen. If False, then the forwards search will be allowed to keep
@@ -150,6 +163,7 @@ class BidirAStar(Nav):
             node, even though there is no path to the goal node.
         """
 
+        self.max_steps = or_default(max_steps, inf)
         self.stop_if_no_path = stop_if_no_path
 
         self.stats: AStar.Stats
@@ -173,8 +187,11 @@ class BidirAStar(Nav):
 
         try:
             self._middle_node = None
-            while run_limit:
+
+            steps = 0
+            while run_limit and steps < self.max_steps:
                 self._from_start._step()
+                steps += 1
                 current = self._from_start._current
                 from_start_evaluated.add(current)
                 if current in from_goal_evaluated:
@@ -185,6 +202,7 @@ class BidirAStar(Nav):
 
                 if self._from_goal._is_searching():
                     self._from_goal._step()
+                    steps += 1
                     current = self._from_goal._current
                     from_goal_evaluated.add(current)
                     if current in from_start_evaluated:
@@ -236,12 +254,11 @@ class BidirAStar(Nav):
 
 
 class _OpenSet:
+    __slots__ = ('_heap', '_set')
+
     def __init__(self):
         self._heap = PriorityQueue()
         self._set = set()
-
-    def __len__(self) -> int:
-        return len(self._set)
 
     def add_if_not_in(self, item: PathNode, f_score: float) -> None:
         if item not in self._set:
