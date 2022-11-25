@@ -29,6 +29,7 @@ def count(start: int = 0, step: int = 1, stop: int = None) -> Iterable[int]:
 
 
 def or_default(item: Optional[Any], default: Optional[Any]) -> Optional[Any]:
+    """Returns the item if it is not None; otherwise, returns the default value."""
     return default if item is None else item
 
 
