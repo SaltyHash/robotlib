@@ -20,6 +20,27 @@ class AStarTest(unittest.TestCase):
         for neighbor in self.world.get_neighbors(node):
             yield tuple(neighbor), self.heuristic(node, neighbor)
 
+    def test_start_is_goal(self):
+        self.world = ArrayGridWorld(np.array([
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 1, 0],
+        ]), diag_allowed=True)
+
+        target = self.target_builder(self.get_neighbors)
+
+        result = target.get_path((1, 0), (1, 0))
+
+        self.assertTrue(result.is_complete)
+
+        expected_nodes = [(1, 0)]
+        np.testing.assert_array_equal(result.nodes, expected_nodes)
+
+        expected_cum_costs = [0]
+        np.testing.assert_array_equal(result.cum_costs, expected_cum_costs)
+
+        self.assertAlmostEqual(expected_cum_costs[-1], result.total_cost)
+
     def test_small__diagonal_not_allowed(self):
         self.world = ArrayGridWorld(np.array([
             [0, 0, 0],

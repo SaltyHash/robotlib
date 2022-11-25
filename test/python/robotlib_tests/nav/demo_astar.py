@@ -157,9 +157,9 @@ class GridWorldViz:
         padded_letters = np.zeros((height, width), dtype=str)
 
         padded_letters[1:-1, 1:-1] = grid_letters
-        padded_letters[0, :] = top_char
+        padded_letters[0, :] = bottom_char
         padded_letters[1:-1, 0] = padded_letters[1:-1, -1] = side_char
-        padded_letters[-1, :] = bottom_char
+        padded_letters[-1, :] = top_char
 
         return padded_letters
 
@@ -183,7 +183,7 @@ def main():
 
     grid_world = RandomGridWorld(
         # Fun seeds: 3, 19, 34
-        seed=0,
+        seed=1,
         obstacle_density=0.4,
         chunk_size=np.array([2, 1]) * 3,
         diag_allowed=True,
@@ -191,16 +191,10 @@ def main():
 
     heuristic = euclidean_heuristic
 
-    # heuristic = manhattan_heuristic
-
     def get_neighbors(node: PathNode) -> Iterable[Tuple[PathNode, float]]:
         node = np.array(node)
         for neighbor in grid_world.get_neighbors(node):
             yield tuple(neighbor), heuristic(node, neighbor)
-
-    dist = 100
-    while not grid_world.is_open((dist, 0)):
-        dist -= 1
 
     # nav = AStar(
     nav = BidirAStar(
@@ -208,10 +202,14 @@ def main():
         heuristic=heuristic,
         max_steps=None,
         max_cost=None,
-        # stop_if_no_path=True,
+        stop_if_no_path=True,
     )
 
-    with Timer() as timer, RuntimeLimit(5) as run_limit:
+    dist = 100
+    while not grid_world.is_open((dist, 0)):
+        dist -= 1
+
+    with Timer() as timer, RuntimeLimit(20) as run_limit:
         path = nav.get_path(
             start=(0, 0),
             goal=(dist, 0),
@@ -231,8 +229,8 @@ def main():
     max_y = max(n[1] for n in path_nodes)
 
     GridWorldViz(grid_world).print(
-        (min_x - 1, min_y - 1),
-        (max_x + 2, max_y + 2),
+        (min_x, min_y),
+        (max_x + 1, max_y + 1),
         nav_path=path
     )
 
