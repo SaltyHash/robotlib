@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from math import inf
 from queue import PriorityQueue
-from typing import Callable, Iterable, Tuple
+from typing import Callable, Iterable, Tuple, Optional
 
 from robotlib.nav import Nav, PathNode, NavPath
 from robotlib.nav.heuristics import euclidean_heuristic
@@ -164,7 +164,7 @@ class BidirAStar(Nav):
         self.max_steps = or_default(max_steps, inf)
         self.stop_if_no_path = stop_if_no_path
 
-        self.stats: AStar.Stats
+        self.stats: Optional[AStar.Stats] = None
 
         def reverse_heuristic(start_, end_) -> float:
             return heuristic(end_, start_)
@@ -172,17 +172,14 @@ class BidirAStar(Nav):
         self._goal: PathNode
         self._from_start = AStar(neighbor_func, heuristic, max_cost=max_cost)
         self._from_goal = AStar(neighbor_func, reverse_heuristic, max_cost=max_cost)
+        self._middle_node: Optional[PathNode] = None
 
     def get_path(self, start: PathNode, goal: PathNode, run_limit: RunLimit = None) -> NavPath:
-        self._goal = goal
-        self._from_start._setup(start, goal)
-        self._from_goal._setup(goal, start)
+        self._setup(start, goal)
 
         run_limit = or_default(run_limit, True)
 
         try:
-            self._middle_node = None
-
             steps = 0
             while run_limit and steps < self.max_steps:
                 # Search in the forward direction
@@ -215,17 +212,14 @@ class BidirAStar(Nav):
 
             return self._build_path()
         finally:
-            self._from_start._clear()
-            self._from_goal._clear()
+            self._clear()
 
-    def _is_done(self) -> bool:
-        if not self._from_start._is_searching():
-            return True
-
-        if self.stop_if_no_path and not self._from_goal._is_searching():
-            return True
-
-        return False
+    def _setup(self, start: PathNode, goal: PathNode) -> None:
+        self.stats = None
+        self._goal = goal
+        self._from_start._setup(start, goal)
+        self._from_goal._setup(goal, start)
+        self._middle_node = None
 
     def _build_path(self) -> NavPath:
         if self._middle_node is None:
@@ -247,6 +241,10 @@ class BidirAStar(Nav):
             cum_costs.append(cost_from_start_to_middle + cost_from_goal_to_middle - cost_from_node_to_goal)
 
         return NavPath(full_path, cum_costs, self._goal)
+
+    def _clear(self) -> None:
+        self._from_start._clear()
+        self._from_goal._clear()
 
 
 class _OpenSet:
