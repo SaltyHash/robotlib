@@ -24,8 +24,7 @@ class AStar(Nav):
     ):
         """
         :param neighbor_func: For a given node, it should return an iterable of tuples (neighbor, cost).
-        :param heuristic: An estimation of the cost to go from one node to another. Must be "admissible", i.e.
-            it may be an under-estimation of the true cost, but it may not be an over-estimation. Euclidian distance
+        :param heuristic: A function that estimates the cost to go from one node to another. Euclidian distance
             (the default) is good for most worlds, as the shortest distance between two points is a straight line.
         :param max_steps: Maximum number of nodes to evaluate before stopping. If None (the default), there is no limit.
         :param max_cost: Maximum estimated total cost (f-score) of nodes to explore. If None (the default),
@@ -150,8 +149,7 @@ class BidirAStar(Nav):
     ):
         """
         :param neighbor_func: For a given node, it should return an iterable of tuples (neighbor, cost).
-        :param heuristic: An estimation of the cost to go from one node to another. Must be "admissible", i.e.
-            it may be an under-estimation of the true cost, but it may not be an over-estimation. Euclidian distance
+        :param heuristic: A function that estimates the cost to go from one node to another. Euclidian distance
             (the default) is good for most worlds, as the shortest distance between two points is a straight line.
         :param max_steps: Maximum number of nodes to evaluate before stopping. If None (the default), there is no limit.
         :param max_cost: Maximum estimated total cost (f-score) of nodes to explore. If None (the default),
@@ -171,45 +169,45 @@ class BidirAStar(Nav):
         def reverse_heuristic(start_, end_) -> float:
             return heuristic(end_, start_)
 
-        # TODO: Costs may not be bidirectionally the same; reverse the neighbor_func and heuristic for _from_goal?
+        self._goal: PathNode
         self._from_start = AStar(neighbor_func, heuristic, max_cost=max_cost)
         self._from_goal = AStar(neighbor_func, reverse_heuristic, max_cost=max_cost)
 
-    def get_path(self, start: 'PathNode', goal: 'PathNode', run_limit: RunLimit = None) -> 'NavPath':
+    def get_path(self, start: PathNode, goal: PathNode, run_limit: RunLimit = None) -> NavPath:
         self._goal = goal
         self._from_start._setup(start, goal)
         self._from_goal._setup(goal, start)
 
         run_limit = or_default(run_limit, True)
 
-        from_start_evaluated = set()
-        from_goal_evaluated = set()
-
         try:
             self._middle_node = None
 
             steps = 0
             while run_limit and steps < self.max_steps:
+                # Search in the forward direction
                 self._from_start._step()
                 steps += 1
                 current = self._from_start._current
-                from_start_evaluated.add(current)
-                if current in from_goal_evaluated:
+                if current in self._from_goal._g_scores:
                     self._middle_node = current
                     break
-                if self._is_done():
+                if not self._from_start._is_searching():
                     break
 
-                if self._from_goal._is_searching():
-                    self._from_goal._step()
-                    steps += 1
-                    current = self._from_goal._current
-                    from_goal_evaluated.add(current)
-                    if current in from_start_evaluated:
-                        self._middle_node = current
+                if not self._from_goal._is_searching():
+                    if self.stop_if_no_path:
                         break
-                    if self._is_done():
-                        break
+                    else:
+                        continue
+
+                # Search in the backward direction
+                self._from_goal._step()
+                steps += 1
+                current = self._from_goal._current
+                if current in self._from_start._g_scores:
+                    self._middle_node = current
+                    break
 
             self.stats = AStar.Stats(
                 nodes_evaluated=self._from_start.stats.nodes_evaluated + self._from_goal.stats.nodes_evaluated
@@ -230,14 +228,12 @@ class BidirAStar(Nav):
         return False
 
     def _build_path(self) -> NavPath:
-        middle_node = self._middle_node
-
-        if middle_node is None:
+        if self._middle_node is None:
             return self._from_start._build_path(self._from_start._closest)
 
-        from_start_to_middle = self._from_start._build_path(middle_node)
+        from_start_to_middle = self._from_start._build_path(self._middle_node)
 
-        from_goal_to_middle = self._from_goal._build_path(middle_node)
+        from_goal_to_middle = self._from_goal._build_path(self._middle_node)
 
         full_path = [
             *from_start_to_middle.nodes_without_end,
