@@ -2,55 +2,45 @@ from typing import Optional
 
 
 class Clipper:
-    def __init__(
-            self,
-            min_value: Optional[float],
-            max_value: Optional[float],
-    ):
+    def __init__(self, min_value: float = None, max_value: float = None):
         self._min_value = None
         self._max_value = None
 
         self.set_limits(min_value, max_value)
 
-    def set_limits(
-            self,
-            min_value: Optional[float],
-            max_value: Optional[float]
-    ) -> None:
+    def set_limits(self, min_value: Optional[float], max_value: Optional[float]) -> None:
         # Clear the max in case it happens to already be set to a value that is
         # lower than the new min_value, which would throw an exception
-        self.set_max(None)
+        self.max_value = None
 
-        self.set_min(min_value)
-        self.set_max(max_value)
+        self.min_value = min_value
+        self.max_value = max_value
 
-    def get_min(self) -> Optional[float]:
+    @property
+    def min_value(self) -> Optional[float]:
         return self._min_value
 
-    def set_min(self, value: Optional[float]) -> None:
+    @min_value.setter
+    def min_value(self, value: Optional[float]) -> None:
         self._check_min(value)
         self._min_value = value
 
     def _check_min(self, value: Optional[float]) -> None:
-        if value is None:
-            return
-
-        if self._max_value is not None and value > self._max_value:
+        if value is not None and self._max_value is not None and value > self._max_value:
             raise ValueError(f'Min value ({value}) cannot be greater '
                              f'than max value ({self._max_value}).')
 
-    def get_max(self) -> Optional[float]:
+    @property
+    def max_value(self) -> Optional[float]:
         return self._max_value
 
-    def set_max(self, value: Optional[float]) -> None:
+    @max_value.setter
+    def max_value(self, value: Optional[float]) -> None:
         self._check_max(value)
         self._max_value = value
 
     def _check_max(self, value: Optional[float]) -> None:
-        if value is None:
-            return
-
-        if self._min_value is not None and value < self._min_value:
+        if value is not None and self._min_value is not None and value < self._min_value:
             raise ValueError(f'Max value ({value}) cannot be greater '
                              f'than min value ({self._min_value}).')
 
@@ -58,11 +48,11 @@ class Clipper:
         return self.clip(value)
 
     def clip(self, value: float) -> float:
-        min_value = self.get_min()
+        min_value = self.min_value
         if min_value is not None and value <= min_value:
             return min_value
 
-        max_value = self.get_max()
+        max_value = self.max_value
         if max_value is not None and value >= max_value:
             return max_value
 

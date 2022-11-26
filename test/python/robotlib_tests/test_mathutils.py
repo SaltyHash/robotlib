@@ -28,9 +28,7 @@ class TestClipper(TestCase):
             expected_y: float
     ) -> None:
         clipper = Clipper(min_value, max_value)
-
         actual_y = clipper.clip(x)
-
         self.assertAlmostEqual(expected_y, actual_y)
 
     def test_call(self) -> None:
@@ -42,52 +40,48 @@ class TestClipper(TestCase):
 
         self.assertEqual(clip_result, call_result)
 
-    def test_get_min(self) -> None:
+    def test_get_min_value(self) -> None:
         clipper = Clipper(3, 10)
-
-        actual = clipper.get_min()
-
+        actual = clipper.min_value
         self.assertEqual(3, actual)
 
-    def test_set_min__good_value(self) -> None:
+    def test_set_min_value__good_value(self) -> None:
         clipper = Clipper(None, 10)
 
-        clipper.set_min(5)
-        actual = clipper.get_min()
+        clipper.min_value = 5
+        actual = clipper.min_value
 
         self.assertEqual(5, actual)
 
-    def test_set_min__bad_value__raise_ValueError(self) -> None:
+    def test_set_min_value__bad_value__raise_ValueError(self) -> None:
         clipper = Clipper(5, 10)
 
         with self.assertRaises(ValueError) as assert_context:
-            clipper.set_min(20)
+            clipper.min_value = 20
 
         self.assertEqual(
             'Min value (20) cannot be greater than max value (10).',
             str(assert_context.exception)
         )
 
-    def test_get_max(self) -> None:
+    def test_get_max_value(self) -> None:
         clipper = Clipper(3, 10)
-
-        actual = clipper.get_max()
-
+        actual = clipper.max_value
         self.assertEqual(10, actual)
 
-    def test_set_max(self) -> None:
+    def test_set_max_value__good_value(self) -> None:
         clipper = Clipper(5, None)
 
-        clipper.set_max(10)
-        actual = clipper.get_max()
+        clipper.max_value = 10
+        actual = clipper.max_value
 
         self.assertEqual(10, actual)
 
-    def test_set_max__bad_value__raise_ValueError(self) -> None:
+    def test_set_max_value__bad_value__raise_ValueError(self) -> None:
         clipper = Clipper(5, 10)
 
         with self.assertRaises(ValueError) as assert_context:
-            clipper.set_max(0)
+            clipper.max_value = 0
 
         self.assertEqual(
             'Max value (0) cannot be greater than min value (5).',
