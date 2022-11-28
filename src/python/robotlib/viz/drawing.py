@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 from numbers import Real
-from typing import Union, NamedTuple
+from typing import Union, NamedTuple, Optional
 
 from robotlib.geometry import Vector2d, Point2d
 from robotlib.viz.color import Color, Colors
@@ -81,7 +81,13 @@ class Canvas(ABC):
         self.draw_rect(left_bottom, (size, size), color=color, width=width)
 
     @abstractmethod
-    def draw_text(self, message: str, left_bottom, color: Color = Colors.BLACK, font_size: int = 12) -> None:
+    def draw_text(
+            self,
+            message: str,
+            left_bottom,
+            color: Color = Colors.BLACK,
+            font_size: int = 12
+    ) -> Optional[Size2d]:
         ...
 
     def fill(self, color: Color):

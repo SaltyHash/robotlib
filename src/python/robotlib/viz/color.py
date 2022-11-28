@@ -56,8 +56,10 @@ class Color(NamedTuple):
 
 class Colors:
     BLACK = Color(0., 0., 0.)
-    WHITE = Color(1., 1., 1.)
+    DARK_GRAY = Color(0.25, 0.25, 0.25)
     GRAY = Color(0.5, 0.5, 0.5)
+    LIGHT_GRAY = Color(0.75, 0.75, 0.75)
+    WHITE = Color(1., 1., 1.)
 
     RED = Color(1., 0., 0.)
     YELLOW = Color(1., 1., 0.)

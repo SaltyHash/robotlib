@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import pygame
+import pygame.gfxdraw
 
 from robotlib.viz.color import Color, Colors
 from robotlib.viz.drawing import Canvas, Corner, FILLED, Width, Size2d
@@ -27,11 +28,41 @@ class PygameCanvas(Canvas):
 
         pygame.draw.line(self.surface, color, p1, p2, width=round(width))
 
-    def draw_circle(self, center, radius, color: Color = Colors.BLACK, width: Width = FILLED):
+    def draw_circle(self, center, radius: float, color: Color = Colors.BLACK, width: Width = FILLED) -> None:
+        if self._circle_is_out_of_bounds(center, radius):
+            return
+
         center = self._to_pygame_point(center)
         color = to_pygame_color(color)
-        width = 0 if width == FILLED else round(width)
 
+        args = (center, radius, color, width)
+
+        if radius < sum(self.size) and (width == FILLED or round(width) == 1):
+            # Drawing antialiased circles is expensive, so we only do it in certain circumstances
+            self._draw_circle_antialiased(*args)
+        else:
+            self._draw_circle_simple(*args)
+
+    def _circle_is_out_of_bounds(self, center, radius: float) -> bool:
+        x, y = center
+        return (
+                x + radius < 0
+                or x - radius > self.width
+                or y + radius < 0
+                or y - radius > self.height
+        )
+
+    def _draw_circle_antialiased(self, center, radius: float, color: Color, width: Width) -> None:
+        x, y = center
+        radius = round(radius)
+
+        if width == FILLED:
+            pygame.gfxdraw.filled_circle(self.surface, x, y, radius, color)
+
+        pygame.gfxdraw.aacircle(self.surface, x, y, radius, color)
+
+    def _draw_circle_simple(self, center, radius: float, color: Color, width: Width) -> None:
+        width = 0 if width == FILLED else round(width)
         pygame.draw.circle(self.surface, color, center, radius, width=width)
 
     def draw_rect(self, left_bottom, width_height, color: Color = Colors.BLACK, width: Width = FILLED):
@@ -56,10 +87,10 @@ class PygameCanvas(Canvas):
             font_size: int = 24,
             bold: bool = False,
             italic: bool = False,
-    ) -> pygame.Surface:
+            antialias: bool = True,
+    ) -> Size2d:
         font = pygame.font.SysFont(font_name, font_size, bold=bold, italic=italic)
 
-        antialias = True
         color = to_pygame_color(color)
         if background is not None:
             background = to_pygame_color(background)
@@ -75,7 +106,8 @@ class PygameCanvas(Canvas):
         position = self._to_pygame_point((x, y))
 
         self.surface.blit(text, position)
-        return text
+
+        return Size2d(text.get_width(), text.get_height())
 
     def fill(self, color: Color):
         color = to_pygame_color(color)
@@ -84,9 +116,9 @@ class PygameCanvas(Canvas):
     def render(self):
         pygame.display.flip()
 
-    def _to_pygame_point(self, p: Tuple[float, float]) -> Tuple[float, float]:
-        x = p[0]
-        y = self.height - p[1]
+    def _to_pygame_point(self, p: Tuple[float, float]) -> tuple[int, int]:
+        x = round(p[0])
+        y = round(self.height - p[1])
         return x, y
 
 
@@ -125,7 +157,7 @@ def main():
                 running = False
                 break
 
-        clock.tick(144)
+        clock.tick(60)
 
 
 if __name__ == '__main__':
