@@ -1,7 +1,7 @@
 """
 Helpful geometry functions.
 
-All functions assume degrees are in Radians unless specified otherwise.
+All functions assume degrees are in Radians unless otherwise specified.
 """
 
 import math
@@ -71,6 +71,9 @@ class Vector2d(NamedTuple):
             return Vector2d(other, other)
         else:
             return Vector2d(other[0], other[1])
+
+
+Point2d = Vector2d
 
 
 class Point3D:
