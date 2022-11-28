@@ -3,6 +3,7 @@ from typing import Tuple
 import pygame
 import pygame.gfxdraw
 
+from robotlib.geometry import Point2d
 from robotlib.viz.color import Color, Colors
 from robotlib.viz.drawing import Canvas, Corner, FILLED, Width, Size2d
 
@@ -112,6 +113,12 @@ class PygameCanvas(Canvas):
     def fill(self, color: Color):
         color = to_pygame_color(color)
         self.surface.fill(color)
+
+    def set_pixel(self, position: Point2d, color: Color) -> None:
+        canvas_buffer = self.surface.get_buffer()
+        pixel = bytes(color[::-1])
+        i = (position.y * self.width + position.x) * 4
+        canvas_buffer.write(pixel, i)
 
     def render(self):
         pygame.display.flip()

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 import pygame
 
+from robotlib.geometry import Point2d
 from robotlib.viz.color import Color, Colors
 from robotlib.viz.drawing import Corner, Width, FILLED
 from robotlib.viz.pygame_canvas import PygameCanvas
@@ -112,15 +113,12 @@ def draw_stars(canvas: PygameCanvas, density: float = 0.0002) -> None:
     star_count = int(canvas.width * canvas.height * density)
     r = random.Random(0)
 
-    canvas_buffer = canvas.surface.get_buffer()
-
     for _ in range(star_count):
         x = r.randint(0, canvas.width - 1)
         y = r.randint(0, canvas.height - 1)
 
         p = r.randint(0, 255)
-        i = (y * canvas.width + x) * 4
-        canvas_buffer.write(bytes((p, p, p)), i)
+        canvas.set_pixel(Point2d(x, y), Color(p, p, p))
 
 
 def draw_body(

@@ -98,6 +98,9 @@ class Canvas(ABC):
             width=FILLED
         )
 
+    def set_pixel(self, position: Point2d, color: Color) -> None:
+        ...
+
     @abstractmethod
     def render(self):
         ...
