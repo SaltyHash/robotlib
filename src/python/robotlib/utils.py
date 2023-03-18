@@ -1,5 +1,6 @@
 import itertools
 import logging
+import random
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -7,6 +8,15 @@ from math import inf
 from typing import Tuple, Any, Callable, Iterable, Optional, TypeVar
 
 T = TypeVar('T')
+
+
+def build_repr(o: Any, *properties: str) -> str:
+    class_name = o.__class__.__name__
+
+    properties = (f'{p}={getattr(o, p)!r}' for p in properties)
+    properties = ', '.join(properties)
+
+    return f'{class_name}({properties})'
 
 
 def count(start: int = 0, step: int = 1, stop: int = None) -> Iterable[int]:
@@ -31,6 +41,31 @@ def count(start: int = 0, step: int = 1, stop: int = None) -> Iterable[int]:
 def or_default(item: Optional[Any], default: Optional[Any]) -> Optional[Any]:
     """Returns the item if it is not None; otherwise, returns the default value."""
     return default if item is None else item
+
+
+def pick_k(items, k: int, rng=None) -> Iterable:
+    """Randomly picks ``k`` items from ``items``, without replacement."""
+
+    items_len = len(items)
+
+    if k > items_len:
+        raise ValueError(
+            f'k must not be less than the number of items. '
+            f'k={k}; len(items)={len(items)}'
+        )
+    elif k < 0:
+        raise ValueError(f'k must be non-negative. k={k}')
+    elif k == items_len:
+        yield from items
+
+    rng = rng or random.Random()
+
+    picked = set()
+    while len(picked) < k:
+        i = rng.randrange(items_len)
+        if i not in picked:
+            yield items[i]
+            picked.add(i)
 
 
 def minmax(*items: T, default: Any = None, key: Callable[[T], Any] = None) -> tuple[T, T]:
