@@ -5,7 +5,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from math import inf
-from typing import Tuple, Any, Callable, Iterable, Optional, TypeVar
+from typing import Tuple, Any, Callable, Iterable, Optional, TypeVar, Sequence
 
 T = TypeVar('T')
 
@@ -43,14 +43,14 @@ def or_default(item: Optional[Any], default: Optional[Any]) -> Optional[Any]:
     return default if item is None else item
 
 
-def pick_k(items, k: int, rng=None) -> Iterable:
+def pick_k(items: Sequence[T], k: int, rng=None) -> Iterable[T]:
     """Randomly picks ``k`` items from ``items``, without replacement."""
 
     items_len = len(items)
 
     if k > items_len:
         raise ValueError(
-            f'k must not be less than the number of items. '
+            f'k must not be greater than the number of items. '
             f'k={k}; len(items)={len(items)}'
         )
     elif k < 0:
