@@ -36,8 +36,7 @@ class BackwardSolverCache(BackwardSolver):
             target_point: Point2d,
             base_point: Point2d = Point2d(0, 0),
     ) -> System:
-        # TODO Some more unique hash of the system
-        system_hash = tuple(link.length for link in system.links)
+        system_hash = self._get_system_hash(system)
         target_region = self._quantize(target_point)
         base_region = self._quantize(base_point)
         key = (system_hash, target_region, base_region)
@@ -45,12 +44,20 @@ class BackwardSolverCache(BackwardSolver):
         if key in self._cache:
             system.angles = self._cache[key]
 
-        system, *other = self.solver.backward(system, target_point, base_point)
+        system = self.solver.backward(system, target_point, base_point)
 
         if key not in self._cache:
             self._cache[key] = system.angles
 
-        return system, *other
+        return system
+
+    def _get_system_hash(self, system: System) -> int:
+        return hash((
+            tuple(link.length for link in system.links),
+            tuple(joint.min_angle for joint in system.joints),
+            tuple(joint.max_angle for joint in system.joints),
+            tuple(joint.resolution for joint in system.joints),
+        ))
 
     def _quantize(self, point: Point2d) -> Point2d:
         return Point2d(

@@ -75,7 +75,7 @@ def test1():
     # 1 / (1 - a) = n
     # a = (n - 1) / n
 
-    bs = RandomBackwardSolver(
+    rbs = RandomBackwardSolver(
         ForwardSolver(),
         # epsilon_zero=pi / 2,
         # epsilon_decay=0.95,
@@ -85,7 +85,7 @@ def test1():
         point_at_target_on_start=False,
         should_draw=False,
     )
-    bs = BackwardSolverCache(bs, precision=0.1)
+    bs = BackwardSolverCache(rbs, precision=0.1)
 
     n = 5
     system = System.from_links(*(1 / n for _ in range(n)))
@@ -103,12 +103,12 @@ def test1():
         )
 
         t0 = time.monotonic()
-        result = bs.backward(system, target_point)
+        system = bs.backward(system, target_point)
         t1 = time.monotonic()
 
         t_total.append(t1 - t0)
-        steps_total.append(result[1])
-        n_within_tolerance.append(1 if result[2] else 0)
+        steps_total.append(rbs.stats.steps)
+        n_within_tolerance.append(1 if rbs.stats.best_dist <= rbs.tolerance else 0)
 
     print()
     print(f't / trial = {t_total}')

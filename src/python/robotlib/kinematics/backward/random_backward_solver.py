@@ -1,10 +1,9 @@
 import random
+import time
 from dataclasses import dataclass
 from dataclasses import field
-from itertools import count
 from math import pi, atan2
 
-import numpy as np
 import pygame
 
 from robotlib.geometry import Point2d
@@ -19,7 +18,7 @@ from robotlib.viz.pygame_canvas import PygameCanvas
 @dataclass
 class RandomBackwardSolverStats:
     steps: int = 0
-    final_dist: Length = 0.
+    best_dist: Length = 0.
     stop_reason: str = ''
 
 
@@ -53,34 +52,34 @@ class RandomBackwardSolver(BackwardSolver):
 
         tolerance = self.tolerance ** 2
 
-        best_dist = self._get_dist(system, target_point, base_point)
+        self.stats.best_dist = self._get_dist(system, target_point, base_point)
         best_angles = system.angles
 
-        epsilon = self._get_epsilon(best_dist, system)
+        epsilon = self._get_epsilon(self.stats.best_dist, system)
 
         min_resolution = min(joint.resolution for joint in system.joints)
         min_epsilon = max(self.min_epsilon, min_resolution)
 
-        for step in count():
-            if step + 1 >= self.max_steps:
+        while True:
+            if self.stats.steps > self.max_steps - 1:
+                self.stats.stop_reason = 'max steps reached'
                 system.angles = best_angles
-                print(f'[{step}] Max steps reached: {self.max_steps}')
                 break
 
             if epsilon < min_epsilon:
+                self.stats.stop_reason = 'epsilon reached min_epsilon'
                 system.angles = best_angles
-                print(f'[{step}] epsilon reached min_epsilon: {min_epsilon}')
                 break
 
             dist = self._get_dist(system, target_point, base_point)
 
             if dist <= tolerance:
-                print(f'[{step}] final dist: {dist ** 0.5}')
-                best_dist = dist
+                self.stats.best_dist = dist
+                self.stats.stop_reason = 'distance within tolerance'
                 break
 
-            if dist < best_dist:
-                best_dist = dist
+            if dist < self.stats.best_dist:
+                self.stats.best_dist = dist
                 best_angles = system.angles
                 epsilon = self._get_epsilon(dist, system)
             else:
@@ -92,12 +91,15 @@ class RandomBackwardSolver(BackwardSolver):
 
             self._point_end_at_target(system, target_point, base_point)
 
+            self.stats.steps += 1
+
+            # TODO REMOVE THIS
             self._draw(system, target_point, clear=False)
 
-        print(f'best dist: {best_dist ** 0.5}')
+        # TODO REMOVE THIS
         self._draw(system, target_point)
 
-        return system, step + 1, best_dist <= tolerance
+        return system
 
     def _point_arm_at_target(self, system: System, target_point: Point2d, base_point: Point2d) -> None:
         joints = system.joints
@@ -180,23 +182,4 @@ class RandomBackwardSolver(BackwardSolver):
         canvas.render()
         pygame.event.clear()
 
-        # time.sleep(1 / 60)
-
-
-class StatsTracker(list):
-    def __str__(self) -> str:
-        stats = self.get_stats()
-        std_percent = 100. * stats.std / abs(stats.mean)
-        return f'{stats.mean:.4} ± {stats.std:.4} ({std_percent:.4}%) [{stats.min:.4}, {stats.max:.4}]'
-
-    def get_stats(self):
-        data = np.array(self, dtype=float)
-        return Stats(data.mean(), data.std(), data.min(), data.max())
-
-
-@dataclass
-class Stats:
-    mean: float
-    std: float
-    min: float
-    max: float
+        time.sleep(1 / 60)
