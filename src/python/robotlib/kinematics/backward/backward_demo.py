@@ -6,7 +6,8 @@ from math import pi, cos, sin
 import numpy as np
 
 from robotlib.geometry import Point2d
-from robotlib.kinematics.backward.backward import RandomBackwardSolver, BackwardSolverCache
+from robotlib.kinematics.backward.backward_cache import BackwardSolverCache
+from robotlib.kinematics.backward.random_backward_solver import RandomBackwardSolver
 from robotlib.kinematics.forward import ForwardSolver
 from robotlib.kinematics.system import System
 
