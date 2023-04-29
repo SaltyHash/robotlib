@@ -1,8 +1,8 @@
 import random
-import time
 from dataclasses import dataclass
+from dataclasses import field
 from itertools import count
-from math import pi, cos, sin, atan2, floor
+from math import pi, atan2, floor
 from typing import Dict
 
 import numpy as np
@@ -10,7 +10,7 @@ import pygame
 
 from robotlib.geometry import Point2d
 from robotlib.kinematics.forward import ForwardSolver
-from robotlib.kinematics.system import System
+from robotlib.kinematics.system import System, Length
 from robotlib.utils import pick_k
 from robotlib.viz.color import Colors
 from robotlib.viz.pygame_canvas import PygameCanvas
@@ -26,7 +26,11 @@ class BackwardSolver:
         ...
 
 
-from dataclasses import field
+@dataclass
+class RandomBackwardSolverStats:
+    steps: int = 0
+    final_dist: Length = 0.
+    stop_reason: str = ''
 
 
 @dataclass
@@ -36,9 +40,13 @@ class RandomBackwardSolver(BackwardSolver):
     max_steps: int = 10000
     epsilon_zero: float = pi / 2
     epsilon_decay: float = 0.99
+    epsilon_dist_decay: float = .96
     min_epsilon: float = 0.001
     point_at_target_on_start: bool = True
+    max_joints_to_jiggle: int = 2
     rng: random.Random = field(default_factory=random.Random)
+
+    stats: 'RandomBackwardSolverStats' = field(default_factory=RandomBackwardSolverStats)
 
     should_draw: bool = True
 
@@ -48,6 +56,8 @@ class RandomBackwardSolver(BackwardSolver):
             target_point: Point2d,
             base_point: Point2d = Point2d(0, 0),
     ) -> System:
+        self.stats = RandomBackwardSolverStats()
+
         if self.point_at_target_on_start:
             self._point_arm_at_target(system, target_point, base_point)
 
@@ -56,9 +66,7 @@ class RandomBackwardSolver(BackwardSolver):
         best_dist = self._get_dist(system, target_point, base_point)
         best_angles = system.angles
 
-        epsilon = self.epsilon_zero
-        a = .96
-        epsilon = self.epsilon_zero * (a * best_dist / (2 * system.max_length) + (1 - a))
+        epsilon = self._get_epsilon(best_dist, system)
 
         min_resolution = min(joint.resolution for joint in system.joints)
         min_epsilon = max(self.min_epsilon, min_resolution)
@@ -82,15 +90,9 @@ class RandomBackwardSolver(BackwardSolver):
                 break
 
             if dist < best_dist:
-                # TODO REMOVE THIS?
-                if 1:
-                    # a = .95#self.epsilon_decay
-                    epsilon = self.epsilon_zero * (a * dist / (2 * system.max_length) + (1 - a))
-
                 best_dist = dist
                 best_angles = system.angles
-
-                # print(f'[{step}] best_dist = {best_dist ** 0.5}')
+                epsilon = self._get_epsilon(dist, system)
             else:
                 system.angles = best_angles
                 epsilon *= self.epsilon_decay
@@ -116,20 +118,24 @@ class RandomBackwardSolver(BackwardSolver):
         for joint in joints[1:]:
             joint.angle = 0
 
-    def _get_dist(self, system: System, target_point: Point2d, base_point: Point2d) -> float:
+    def _get_dist(self, system: System, target_point: Point2d, base_point: Point2d) -> Length:
         end_point = self.forward_solver.forward(system, base_point=base_point)[-1]
 
         dist = target_point - end_point
         dist = dist.x ** 2 + dist.y ** 2
         return dist
 
-    def _jiggle(self, system: System, epsilon: float, max_joint_cnt: int = 2) -> None:
-        # for joint in system.joints[:-1]:
-        #     joint.angle += epsilon * self.rng.uniform(-1, 1)
+    def _get_epsilon(self, best_dist: Length, system: System) -> float:
+        return self.epsilon_zero * (
+                self.epsilon_dist_decay * best_dist / (2 * system.max_length)
+                + (1 - self.epsilon_dist_decay)
+        )
 
+    def _jiggle(self, system: System, epsilon: float) -> None:
         joints = system.joints[:-1]
-        if max_joint_cnt >= 0 and len(joints) > max_joint_cnt:
-            joints = pick_k(joints, k=max_joint_cnt, rng=self.rng)
+
+        if 0 <= self.max_joints_to_jiggle < len(joints):
+            joints = pick_k(joints, k=self.max_joints_to_jiggle, rng=self.rng)
 
         for joint in joints:
             joint.angle += epsilon * self.rng.uniform(-1, 1)
@@ -240,110 +246,6 @@ class BackwardSolverCache(BackwardSolver):
         )
 
 
-def test0():
-    n = 3
-    system = System.from_links(*(1 / n for _ in range(n)))
-    # system = System.from_links(1, .75, .56, .42, .32)
-
-    if 0:
-        joint = system.joints[0]
-        # joint.min_angle = pi / 4
-        # joint.max_angle = 3 * pi / 4
-        joint.min_angle = 0
-        joint.max_angle = pi
-
-    if 0:
-        # limit = 2 * pi / len(system.joints)
-        limit = pi / 2
-        for joint in system.joints[1:]:
-            joint.min_angle = -limit
-            joint.max_angle = limit
-
-    if 0:
-        r = 2 * pi / 360
-        for joint in system.joints:
-            joint.resolution = r
-
-    bs = RandomBackwardSolver(
-        ForwardSolver(),
-        epsilon_zero=pi,
-        epsilon_decay=.8,
-        point_at_target_on_start=0,
-    )
-    bs = BackwardSolverCache(bs, precision=0.1)
-
-    angle = 0
-    x, dx = .8, .1
-    while True:
-        max_length = random.random() * system.max_length
-        # max_length = system.max_length / 2
-        angle = 2 * pi * random.random()
-        # angle += 2 * pi / 16
-        target_point = Point2d(
-            x=max_length * cos(angle),
-            y=max_length * sin(angle),
-        )
-
-        # if x >= .8 or x <= -.8:
-        #     dx *= -1
-        # x += dx
-        # y = (.8 - abs(x)) * (1 if dx > 0 else -1)
-        # target_point = Point2d(x=x, y=y)
-
-        bs.backward(system, target_point)
-
-        print(f'final system: {system}')
-        print(f'len(cache)={len(bs)}')
-        # time.sleep(1 / 60)
-
-
-def test1():
-    trials = 20000
-
-    # 1 / (1 - a) = n
-    # a = (n - 1) / n
-
-    bs = RandomBackwardSolver(
-        ForwardSolver(),
-        # epsilon_zero=pi / 2,
-        # epsilon_decay=0.95,
-        epsilon_zero=pi,
-        epsilon_decay=.96,
-
-        point_at_target_on_start=False,
-        should_draw=False,
-    )
-    bs = BackwardSolverCache(bs, precision=0.1)
-
-    n = 5
-    system = System.from_links(*(1 / n for _ in range(n)))
-
-    t_total = StatsTracker()
-    steps_total = StatsTracker()
-    n_within_tolerance = StatsTracker()
-
-    for _ in range(trials):
-        max_length = random.random() * system.max_length
-        angle = 2 * pi * random.random()
-        target_point = Point2d(
-            x=max_length * cos(angle),
-            y=max_length * sin(angle),
-        )
-
-        t0 = time.monotonic()
-        result = bs.backward(system, target_point)
-        t1 = time.monotonic()
-
-        t_total.append(t1 - t0)
-        steps_total.append(result[1])
-        n_within_tolerance.append(1 if result[2] else 0)
-
-    print()
-    print(f't / trial = {t_total}')
-    print(f'steps / trial = {steps_total}')
-    print(f'% within tolerance = {n_within_tolerance}')
-
-
 class StatsTracker(list):
     def __str__(self) -> str:
         stats = self.get_stats()
@@ -361,11 +263,3 @@ class Stats:
     std: float
     min: float
     max: float
-
-
-def main():
-    test1()
-
-
-if __name__ == '__main__':
-    main()
