@@ -112,6 +112,23 @@ class System:
     def max_length(self) -> Length:
         return sum(link.length for link in self.links)
 
+    @property
+    def static_hash(self) -> int:
+        """A hash of the system that does not change when the angles change."""
+
+        return hash((
+            tuple(link.length for link in self.links),
+            tuple(joint.min_angle for joint in self.joints),
+            tuple(joint.max_angle for joint in self.joints),
+            tuple(joint.resolution for joint in self.joints),
+        ))
+
+    def __hash__(self) -> int:
+        return hash((
+            self.static_hash,
+            tuple(joint.angle for joint in self.joints),
+        ))
+
     def __str__(self) -> str:
         parts = []
         for joint, link in self.joints_links:

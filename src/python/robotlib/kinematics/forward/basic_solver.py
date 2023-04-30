@@ -10,7 +10,7 @@ class BasicForwardSolver(ForwardSolver):
     def solve(
             self,
             system: System,
-            base_point: Point2d = Point2d(0, 0)
+            base_point: Point2d = Point2d(0, 0),
     ) -> Sequence[Point2d]:
         point = base_point
         points = [point]

@@ -1,8 +1,11 @@
+from abc import abstractmethod
+
 from robotlib.geometry import Point2d
 from robotlib.kinematics.system import System
 
 
 class InverseSolver:
+    @abstractmethod
     def solve(
             self,
             system: System,

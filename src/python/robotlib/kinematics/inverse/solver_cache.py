@@ -36,10 +36,9 @@ class InverseSolverCache(InverseSolver):
             target_point: Point2d,
             base_point: Point2d = Point2d(0, 0),
     ) -> System:
-        system_hash = self._get_system_hash(system)
         target_region = self._quantize(target_point)
         base_region = self._quantize(base_point)
-        key = (system_hash, target_region, base_region)
+        key = (system.static_hash, target_region, base_region)
 
         if key in self._cache:
             system.angles = self._cache[key]
@@ -50,14 +49,6 @@ class InverseSolverCache(InverseSolver):
             self._cache[key] = system.angles
 
         return system
-
-    def _get_system_hash(self, system: System) -> int:
-        return hash((
-            tuple(link.length for link in system.links),
-            tuple(joint.min_angle for joint in system.joints),
-            tuple(joint.max_angle for joint in system.joints),
-            tuple(joint.resolution for joint in system.joints),
-        ))
 
     def _quantize(self, point: Point2d) -> Point2d:
         return Point2d(
