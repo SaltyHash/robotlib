@@ -7,8 +7,8 @@ from math import pi, atan2
 import pygame
 
 from robotlib.geometry import Point2d
-from robotlib.kinematics.inverse.inverse_solver import InverseSolver
-from robotlib.kinematics.forward import ForwardSolver
+from robotlib.kinematics.inverse.solver import InverseSolver
+from robotlib.kinematics.forward.solver import ForwardSolver
 from robotlib.kinematics.system import System, Length
 from robotlib.utils import pick_k
 from robotlib.viz.color import Colors
@@ -111,7 +111,7 @@ class RandomInverseSolver(InverseSolver):
             joint.angle = 0
 
     def _get_dist(self, system: System, target_point: Point2d, base_point: Point2d) -> Length:
-        end_point = self.forward_solver.forward(system, base_point=base_point)[-1]
+        end_point = self.forward_solver.solve(system, base_point=base_point)[-1]
 
         dist = target_point - end_point
         dist = dist.x ** 2 + dist.y ** 2
@@ -134,7 +134,7 @@ class RandomInverseSolver(InverseSolver):
 
     def _point_end_at_target(self, system: System, target_point: Point2d, base_point: Point2d) -> None:
         last_joint = system.joints[-1]
-        last_joint_position = self.forward_solver.forward(system, base_point=base_point)[-2]
+        last_joint_position = self.forward_solver.solve(system, base_point=base_point)[-2]
 
         angle_to_target = atan2(
             target_point.y - last_joint_position.y,
@@ -160,7 +160,7 @@ class RandomInverseSolver(InverseSolver):
 
         points = [
             scale * point + base_point
-            for point in self.forward_solver.forward(system)
+            for point in self.forward_solver.solve(system)
         ]
 
         if clear:

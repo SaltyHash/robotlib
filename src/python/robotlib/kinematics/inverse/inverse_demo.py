@@ -6,9 +6,9 @@ from math import pi, cos, sin
 import numpy as np
 
 from robotlib.geometry import Point2d
-from robotlib.kinematics.inverse.inverse_cache import InverseSolverCache
-from robotlib.kinematics.inverse.random_inverse_solver import RandomInverseSolver
-from robotlib.kinematics.forward import ForwardSolver
+from robotlib.kinematics.inverse.solver_cache import InverseSolverCache
+from robotlib.kinematics.inverse.random_solver import RandomInverseSolver
+from robotlib.kinematics.forward.basic_solver import BasicForwardSolver
 from robotlib.kinematics.system import System
 
 
@@ -37,7 +37,7 @@ def test0():
             joint.resolution = r
 
     bs = RandomInverseSolver(
-        ForwardSolver(),
+        BasicForwardSolver(),
         epsilon_zero=pi,
         epsilon_decay=.8,
         point_at_target_on_start=0,
@@ -76,7 +76,7 @@ def test1():
     # a = (n - 1) / n
 
     rbs = RandomInverseSolver(
-        ForwardSolver(),
+        BasicForwardSolver(),
         # epsilon_zero=pi / 2,
         # epsilon_decay=0.95,
         epsilon_zero=pi,

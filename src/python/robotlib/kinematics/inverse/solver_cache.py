@@ -2,7 +2,7 @@ from math import floor
 from typing import Dict
 
 from robotlib.geometry import Point2d
-from robotlib.kinematics.inverse.inverse_solver import InverseSolver
+from robotlib.kinematics.inverse.solver import InverseSolver
 from robotlib.kinematics.system import System
 
 
