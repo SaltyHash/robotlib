@@ -6,8 +6,8 @@ from math import pi, cos, sin
 import numpy as np
 
 from robotlib.geometry import Point2d
-from robotlib.kinematics.backward.backward_cache import BackwardSolverCache
-from robotlib.kinematics.backward.random_backward_solver import RandomBackwardSolver
+from robotlib.kinematics.inverse.inverse_cache import InverseSolverCache
+from robotlib.kinematics.inverse.random_inverse_solver import RandomInverseSolver
 from robotlib.kinematics.forward import ForwardSolver
 from robotlib.kinematics.system import System
 
@@ -36,13 +36,13 @@ def test0():
         for joint in system.joints:
             joint.resolution = r
 
-    bs = RandomBackwardSolver(
+    bs = RandomInverseSolver(
         ForwardSolver(),
         epsilon_zero=pi,
         epsilon_decay=.8,
         point_at_target_on_start=0,
     )
-    bs = BackwardSolverCache(bs, precision=0.1)
+    bs = InverseSolverCache(bs, precision=0.1)
 
     angle = 0
     x, dx = .8, .1
@@ -62,7 +62,7 @@ def test0():
         # y = (.8 - abs(x)) * (1 if dx > 0 else -1)
         # target_point = Point2d(x=x, y=y)
 
-        bs.backward(system, target_point)
+        bs.solve(system, target_point)
 
         print(f'final system: {system}')
         print(f'len(cache)={len(bs)}')
@@ -75,7 +75,7 @@ def test1():
     # 1 / (1 - a) = n
     # a = (n - 1) / n
 
-    rbs = RandomBackwardSolver(
+    rbs = RandomInverseSolver(
         ForwardSolver(),
         # epsilon_zero=pi / 2,
         # epsilon_decay=0.95,
@@ -85,7 +85,7 @@ def test1():
         point_at_target_on_start=False,
         should_draw=False,
     )
-    bs = BackwardSolverCache(rbs, precision=0.1)
+    bs = InverseSolverCache(rbs, precision=0.1)
 
     n = 5
     system = System.from_links(*(1 / n for _ in range(n)))
@@ -103,7 +103,7 @@ def test1():
         )
 
         t0 = time.monotonic()
-        system = bs.backward(system, target_point)
+        system = bs.solve(system, target_point)
         t1 = time.monotonic()
 
         t_total.append(t1 - t0)

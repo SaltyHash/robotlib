@@ -2,8 +2,8 @@ from robotlib.geometry import Point2d
 from robotlib.kinematics.system import System
 
 
-class BackwardSolver:
-    def backward(
+class InverseSolver:
+    def solve(
             self,
             system: System,
             end_point: Point2d,

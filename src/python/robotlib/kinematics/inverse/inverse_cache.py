@@ -2,19 +2,19 @@ from math import floor
 from typing import Dict
 
 from robotlib.geometry import Point2d
-from robotlib.kinematics.backward.backward_solver import BackwardSolver
+from robotlib.kinematics.inverse.inverse_solver import InverseSolver
 from robotlib.kinematics.system import System
 
 
-class BackwardSolverCache(BackwardSolver):
-    solver: BackwardSolver
+class InverseSolverCache(InverseSolver):
+    solver: InverseSolver
     precision: float
 
     _cache: Dict
 
     def __init__(
             self,
-            solver: BackwardSolver,
+            solver: InverseSolver,
             precision: float,
     ):
         self.solver = solver
@@ -30,7 +30,7 @@ class BackwardSolverCache(BackwardSolver):
         """The number of entries in the cache. This is also returned by ``len(...)``."""
         return len(self._cache)
 
-    def backward(
+    def solve(
             self,
             system: System,
             target_point: Point2d,
@@ -44,7 +44,7 @@ class BackwardSolverCache(BackwardSolver):
         if key in self._cache:
             system.angles = self._cache[key]
 
-        system = self.solver.backward(system, target_point, base_point)
+        system = self.solver.solve(system, target_point, base_point)
 
         if key not in self._cache:
             self._cache[key] = system.angles

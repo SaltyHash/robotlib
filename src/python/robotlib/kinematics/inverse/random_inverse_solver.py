@@ -7,7 +7,7 @@ from math import pi, atan2
 import pygame
 
 from robotlib.geometry import Point2d
-from robotlib.kinematics.backward.backward_solver import BackwardSolver
+from robotlib.kinematics.inverse.inverse_solver import InverseSolver
 from robotlib.kinematics.forward import ForwardSolver
 from robotlib.kinematics.system import System, Length
 from robotlib.utils import pick_k
@@ -16,14 +16,14 @@ from robotlib.viz.pygame_canvas import PygameCanvas
 
 
 @dataclass
-class RandomBackwardSolverStats:
+class RandomInverseSolverStats:
     steps: int = 0
     best_dist: Length = 0.
     stop_reason: str = ''
 
 
 @dataclass
-class RandomBackwardSolver(BackwardSolver):
+class RandomInverseSolver(InverseSolver):
     forward_solver: ForwardSolver
     tolerance: float = 0.001
     max_steps: int = 10000
@@ -35,17 +35,17 @@ class RandomBackwardSolver(BackwardSolver):
     max_joints_to_jiggle: int = 2
     rng: random.Random = field(default_factory=random.Random)
 
-    stats: 'RandomBackwardSolverStats' = field(default_factory=RandomBackwardSolverStats)
+    stats: 'RandomInverseSolverStats' = field(default_factory=RandomInverseSolverStats)
 
     should_draw: bool = True
 
-    def backward(
+    def solve(
             self,
             system: System,
             target_point: Point2d,
             base_point: Point2d = Point2d(0, 0),
     ) -> System:
-        self.stats = RandomBackwardSolverStats()
+        self.stats = RandomInverseSolverStats()
 
         if self.point_at_target_on_start:
             self._point_arm_at_target(system, target_point, base_point)
