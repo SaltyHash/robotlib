@@ -6,13 +6,13 @@ from unittest import TestCase
 from parameterized import parameterized
 
 from robotlib.geometry import Point2d
-from robotlib.kinematics.forward import ForwardSolver
+from robotlib.kinematics.forward.basic_solver import BasicForwardSolver
 from robotlib.kinematics.system import System
 
 
-class ForwardSolverTest(TestCase):
+class BasicForwardSolverTest(TestCase):
     def setUp(self) -> None:
-        self.target = ForwardSolver()
+        self.target = BasicForwardSolver()
 
     @parameterized.expand([
         (Point2d(0, 0), 0., 1., Point2d(1., 0)),
@@ -34,7 +34,7 @@ class ForwardSolverTest(TestCase):
             links=[link_length],
         )
 
-        result = self.target.forward(system, base_point=base_point)
+        result = self.target.solve(system, base_point=base_point)
 
         expected = [base_point, expected_point]
 
@@ -46,7 +46,7 @@ class ForwardSolverTest(TestCase):
             links=(2, 3),
         )
 
-        result = self.target.forward(system)
+        result = self.target.solve(system)
 
         expected = [
             Point2d(0, 0),
