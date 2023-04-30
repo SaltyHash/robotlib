@@ -1,5 +1,5 @@
 from math import cos, sin
-from typing import List
+from typing import Sequence
 
 from robotlib.geometry import Point2d
 from robotlib.kinematics.forward.solver import ForwardSolver
@@ -11,7 +11,7 @@ class BasicForwardSolver(ForwardSolver):
             self,
             system: System,
             base_point: Point2d = Point2d(0, 0)
-    ) -> List[Point2d]:
+    ) -> Sequence[Point2d]:
         point = base_point
         points = [point]
         angle = 0.
