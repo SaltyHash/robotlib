@@ -2,14 +2,80 @@ import random
 import time
 from dataclasses import dataclass
 from math import pi, cos, sin
+from typing import Optional
 
 import numpy as np
+import pygame
 
 from robotlib.geometry import Point2d
-from robotlib.kinematics.inverse.solver_cache import InverseSolverCache
-from robotlib.kinematics.inverse.random_solver import RandomInverseSolver
 from robotlib.kinematics.forward.basic_solver import BasicForwardSolver
+from robotlib.kinematics.inverse.random_solver import RandomInverseSolver, Context
+from robotlib.kinematics.inverse.solver_cache import InverseSolverCache
 from robotlib.kinematics.system import System
+from robotlib.viz.color import Colors
+from robotlib.viz.pygame_canvas import PygameCanvas
+
+
+class RandomInverseSolverWithDrawing(RandomInverseSolver):
+    canvas: PygameCanvas
+    should_draw: bool
+    fps: Optional[float]
+
+    def __init__(self, *args, should_draw: bool = True, fps: float = 60., **kwargs):
+        super().__init__(*args, **kwargs)
+        self.should_draw = should_draw
+        self.fps = fps
+
+    def start_callback(self, context: 'Context') -> None:
+        self._draw(context.system, context.target_point, clear=True)
+
+    def post_step_callback(self, context: 'Context') -> None:
+        self._draw(context.system, context.target_point, clear=False)
+
+    def end_callback(self, context: 'Context') -> None:
+        self._draw(context.system, context.target_point, clear=True)
+        time.sleep(0.5)
+
+    def _draw(self, system: System, target: Point2d, clear: bool = True) -> None:
+        if not self.should_draw:
+            return
+
+        try:
+            canvas = self.canvas
+        except AttributeError:
+            pygame.init()
+            surface = pygame.display.set_mode((800, 800))
+            canvas = self.canvas = PygameCanvas(surface)
+
+        scale = canvas.height / 2 / system.max_length
+        base_point = canvas.center
+
+        points = [
+            scale * point + base_point
+            for point in self.forward_solver.solve(system)
+        ]
+
+        if clear:
+            canvas.fill(Colors.WHITE)
+
+        canvas.draw_circle(base_point, scale * system.max_length, width=1)
+
+        for i in range(len(points) - 1):
+            point_a, point_b = points[i:i + 2]
+            canvas.draw_line(point_a, point_b, Colors.BLACK, width=1)
+
+        for point in points:
+            canvas.draw_circle(point, 3, Colors.GRAY)
+
+        target_radius = round(scale * self.tolerance)
+        target_radius = max(target_radius, 3)
+        canvas.draw_circle(scale * target + base_point, target_radius, Colors.GREEN)
+
+        canvas.render()
+        pygame.event.clear()
+
+        if self.fps is not None:
+            time.sleep(1 / self.fps)
 
 
 def test0():
@@ -36,13 +102,15 @@ def test0():
         for joint in system.joints:
             joint.resolution = r
 
-    bs = RandomInverseSolver(
+    solver = RandomInverseSolverWithDrawing(
         BasicForwardSolver(),
+        should_draw=True,
+        fps=10,
         epsilon_zero=pi,
         epsilon_decay=.8,
         point_at_target_on_start=0,
     )
-    bs = InverseSolverCache(bs, precision=0.1)
+    solver = InverseSolverCache(solver, precision=0.1)
 
     angle = 0
     x, dx = .8, .1
@@ -62,10 +130,10 @@ def test0():
         # y = (.8 - abs(x)) * (1 if dx > 0 else -1)
         # target_point = Point2d(x=x, y=y)
 
-        bs.solve(system, target_point)
+        solver.solve(system, target_point)
 
         print(f'final system: {system}')
-        print(f'len(cache)={len(bs)}')
+        # print(f'len(cache)={len(solver)}')
         # time.sleep(1 / 60)
 
 
@@ -75,15 +143,14 @@ def test1():
     # 1 / (1 - a) = n
     # a = (n - 1) / n
 
-    rbs = RandomInverseSolver(
+    # rbs = RandomInverseSolver(
+    rbs = RandomInverseSolverWithDrawing(
         BasicForwardSolver(),
         # epsilon_zero=pi / 2,
         # epsilon_decay=0.95,
         epsilon_zero=pi,
         epsilon_decay=.96,
-
         point_at_target_on_start=False,
-        should_draw=False,
     )
     bs = InverseSolverCache(rbs, precision=0.1)
 

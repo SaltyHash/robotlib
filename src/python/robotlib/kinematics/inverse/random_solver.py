@@ -1,43 +1,54 @@
 import random
-import time
 from dataclasses import dataclass
-from dataclasses import field
 from math import pi, atan2
 
-import pygame
-
 from robotlib.geometry import Point2d
-from robotlib.kinematics.inverse.solver import InverseSolver
 from robotlib.kinematics.forward.solver import ForwardSolver
+from robotlib.kinematics.inverse.solver import InverseSolver
 from robotlib.kinematics.system import System, Length
 from robotlib.utils import pick_k
-from robotlib.viz.color import Colors
-from robotlib.viz.pygame_canvas import PygameCanvas
 
 
-@dataclass
-class RandomInverseSolverStats:
-    steps: int = 0
-    best_dist: Length = 0.
-    stop_reason: str = ''
-
-
-@dataclass
 class RandomInverseSolver(InverseSolver):
+    """Uses greedy random search to solve the inverse kinematics of a system."""
+
     forward_solver: ForwardSolver
-    tolerance: float = 0.001
-    max_steps: int = 10000
-    epsilon_zero: float = pi / 2
-    epsilon_decay: float = 0.99
-    epsilon_dist_decay: float = .96
-    min_epsilon: float = 0.001
-    point_at_target_on_start: bool = True
-    max_joints_to_jiggle: int = 2
-    rng: random.Random = field(default_factory=random.Random)
+    tolerance: float
+    max_steps: int
+    epsilon_zero: float
+    epsilon_decay: float
+    epsilon_dist_decay: float
+    min_epsilon: float
+    point_at_target_on_start: bool
+    max_joints_to_jiggle: int
+    rng: random.Random
 
-    stats: 'RandomInverseSolverStats' = field(default_factory=RandomInverseSolverStats)
+    stats: 'Stats'
+    """Info about the last run."""
 
-    should_draw: bool = True
+    def __init__(
+            self,
+            forward_solver: ForwardSolver,
+            tolerance: float = 0.001,
+            max_steps: int = 10000,
+            epsilon_zero: float = pi / 2,
+            epsilon_decay: float = 0.99,
+            epsilon_dist_decay: float = .96,
+            min_epsilon: float = 0.001,
+            point_at_target_on_start: bool = True,
+            max_joints_to_jiggle: int = 2,
+            rng: random.Random = None,
+    ):
+        self.forward_solver = forward_solver
+        self.tolerance = tolerance
+        self.max_steps = max_steps
+        self.epsilon_zero = epsilon_zero
+        self.epsilon_decay = epsilon_decay
+        self.epsilon_dist_decay = epsilon_dist_decay
+        self.min_epsilon = min_epsilon
+        self.point_at_target_on_start = point_at_target_on_start
+        self.max_joints_to_jiggle = max_joints_to_jiggle
+        self.rng = rng or random.Random()
 
     def solve(
             self,
@@ -45,7 +56,7 @@ class RandomInverseSolver(InverseSolver):
             target_point: Point2d,
             base_point: Point2d = Point2d(0, 0),
     ) -> System:
-        self.stats = RandomInverseSolverStats()
+        self.stats = Stats()
 
         if self.point_at_target_on_start:
             self._point_arm_at_target(system, target_point, base_point)
@@ -59,6 +70,9 @@ class RandomInverseSolver(InverseSolver):
 
         min_resolution = min(joint.resolution for joint in system.joints)
         min_epsilon = max(self.min_epsilon, min_resolution)
+
+        context = Context(system, target_point, base_point)
+        self.start_callback(context)
 
         while True:
             if self.stats.steps > self.max_steps - 1:
@@ -85,7 +99,6 @@ class RandomInverseSolver(InverseSolver):
             else:
                 system.angles = best_angles
                 epsilon *= self.epsilon_decay
-                self._draw(system, target_point)
 
             self._jiggle(system, epsilon)
 
@@ -93,13 +106,23 @@ class RandomInverseSolver(InverseSolver):
 
             self.stats.steps += 1
 
-            # TODO REMOVE THIS
-            self._draw(system, target_point, clear=False)
+            self.post_step_callback(context)
 
-        # TODO REMOVE THIS
-        self._draw(system, target_point)
+        self.end_callback(context)
 
         return system
+
+    def start_callback(self, context: 'Context') -> None:
+        """Run once before the first step begins."""
+        pass
+
+    def post_step_callback(self, context: 'Context') -> None:
+        """Run after each step."""
+        pass
+
+    def end_callback(self, context: 'Context') -> None:
+        """Run after the last step."""
+        pass
 
     def _point_arm_at_target(self, system: System, target_point: Point2d, base_point: Point2d) -> None:
         joints = system.joints
@@ -144,42 +167,16 @@ class RandomInverseSolver(InverseSolver):
         global_joint_angle = sum(j.angle for j in system.joints)
         last_joint.angle -= global_joint_angle - angle_to_target
 
-    def _draw(self, system: System, target: Point2d, clear: bool = True) -> None:
-        if not self.should_draw:
-            return
 
-        try:
-            canvas = self.canvas
-        except AttributeError:
-            pygame.init()
-            surface = pygame.display.set_mode((800, 800))
-            canvas = self.canvas = PygameCanvas(surface)
+@dataclass
+class Stats:
+    steps: int = 0
+    best_dist: Length = 0.
+    stop_reason: str = ''
 
-        scale = canvas.height / 2 / system.max_length
-        base_point = canvas.center
 
-        points = [
-            scale * point + base_point
-            for point in self.forward_solver.solve(system)
-        ]
-
-        if clear:
-            canvas.fill(Colors.WHITE)
-
-        canvas.draw_circle(base_point, scale * system.max_length, width=1)
-
-        for i in range(len(points) - 1):
-            point_a, point_b = points[i:i + 2]
-            canvas.draw_line(point_a, point_b, Colors.BLACK, width=1)
-
-        for point in points:
-            canvas.draw_circle(point, 3, Colors.GRAY)
-
-        target_radius = round(scale * self.tolerance)
-        target_radius = max(target_radius, 3)
-        canvas.draw_circle(scale * target + base_point, target_radius, Colors.GREEN)
-
-        canvas.render()
-        pygame.event.clear()
-
-        time.sleep(1 / 60)
+@dataclass
+class Context:
+    system: System
+    target_point: Point2d
+    base_point: Point2d
